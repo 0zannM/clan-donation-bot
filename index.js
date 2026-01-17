@@ -63,6 +63,7 @@ async function checkLedger() {
 
   /* --- KAYITLARI İŞLE --- */
   for (const entry of res.data) {
+    if (lastDate && entry.date <= lastDate) continue;
     // SADECE ALTIN BAĞIŞ
     if (entry.gold < 50) continue;
     if (!entry.playerUsername || !entry.gold) continue;
