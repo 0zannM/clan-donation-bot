@@ -63,15 +63,13 @@ async function checkLedger() {
 
   /* --- KAYITLARI İŞLE --- */
   for (const entry of res.data) {
-    // SADECE ALTIN BAĞIŞI
-    if (entry.type !== "DONATION_GOLD") continue;
+    // SADECE ALTIN BAĞIŞ
+    if (entry.gold < 50) continue;
     if (!entry.playerUsername || !entry.gold) continue;
 
     let template;
 
-    if (entry.gold < 50) {
-      
-    } else if (entry.gold < 250) {
+      if (entry.gold < 250) {
       template = randomFrom(goldMessages.small);
     } else if (entry.gold < 650) {
       template = randomFrom(goldMessages.medium);
