@@ -1,4 +1,8 @@
 const axios = require("axios");
+const fs = require("fs");
+const path = require("path");
+
+const STATE_FILE = path.join(__dirname, "last_state.json");
 
 function randomFrom(array) {
   return array[Math.floor(Math.random() * array.length)];
@@ -10,19 +14,16 @@ const goldMessages = {
     "{user} evsizlere umut olmak adına {amount} altın bağışladı",
     "{user} ekonomik durumu çok iyi olmasa da {amount} altın bağışı çok görmedi"
   ],
-
   medium: [
     "{user}, znciler daha iyi bir yaşamı hak ediyor diye düşünüp {amount} altın bağışladı",
     "{user}, klanı {amount} altınla güçlendirdi!",
     "{user}, {amount} altınla klana destek oldu!"
   ],
-
   big: [
     "{user}, hiçbir znci yoksulluk içinde olmasın diye {amount} altını hayır kurumuna bağışladı",
     "Altyapı çalışmalarına fon sağlamak isteyen {user}, {amount} altın bağışladı",
     "{amount} altın bağışlayan {user}'i tebrik ederiz"
   ],
-
   huge: [
     "{user} cömert gününde. Klana yaptığı bu büyük {amount} altın bağışla Zncidirenis yüzyılını başlatmış bulunuyor",
     "{user}, büyük uğraşlarla kazandığı {amount} altınını hazineye bağışlayıp çiftçimize mazot, emekliye tebessüm oldu.",
@@ -33,35 +34,53 @@ const goldMessages = {
 const API_TOKEN = process.env.API_TOKEN;
 const CLAN_ID = process.env.CLAN_ID;
 
+// STATE OKU
+function loadState() {
+  if (!fs.existsSync(STATE_FILE)) {
+    return { lastProcessedDate: null };
+  }
+  return JSON.parse(fs.readFileSync(STATE_FILE, "utf8"));
+}
+
+// STATE YAZ
+function saveState(date) {
+  fs.writeFileSync(
+    STATE_FILE,
+    JSON.stringify({ lastProcessedDate: date }, null, 2)
+  );
+}
+
 async function checkLedger() {
   console.log("⏳ Ledger kontrol ediliyor...");
+
+  const state = loadState();
+  const lastDate = state.lastProcessedDate
+    ? new Date(state.lastProcessedDate)
+    : new Date(0);
 
   const res = await axios.get(
     `https://api.wolvesville.com/clans/${CLAN_ID}/ledger`,
     { headers: { Authorization: `Bot ${API_TOKEN}` } }
   );
 
-  const oneHourAgo = Date.now() - 60 * 60 * 1000;
-
-  const donations = res.data.filter(entry =>
-    entry.gold > 0 &&
-    entry.playerUsername &&
-    new Date(entry.date).getTime() >= oneHourAgo
-  );
+  const donations = res.data
+    .filter(entry =>
+      entry.gold > 0 &&
+      entry.playerUsername &&
+      new Date(entry.date) > lastDate
+    )
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
 
   if (donations.length === 0) {
     console.log("Yeni altın bağışı yok.");
     return;
   }
 
-  // eskiden yeniye
-  donations.sort((a, b) => new Date(a.date) - new Date(b.date));
-
   for (const entry of donations) {
     let template;
 
     if (entry.gold < 50) {
-      
+      template = randomFrom(goldMessages.small);
     } else if (entry.gold < 250) {
       template = randomFrom(goldMessages.small);
     } else if (entry.gold < 650) {
@@ -83,6 +102,9 @@ async function checkLedger() {
     );
 
     console.log("💬 Gönderildi:", message);
+
+    // 🔐 HER BAĞIŞTAN SONRA STATE GÜNCELLE
+    saveState(entry.date);
   }
 }
 
