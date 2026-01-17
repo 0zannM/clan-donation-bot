@@ -61,7 +61,7 @@ async function checkLedger() {
     let template;
 
     if (entry.gold < 50) {
-      template = randomFrom(goldMessages.small);
+      
     } else if (entry.gold < 250) {
       template = randomFrom(goldMessages.small);
     } else if (entry.gold < 650) {
