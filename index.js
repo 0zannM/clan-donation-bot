@@ -45,7 +45,7 @@ lastRunDate = new Date(JSON.parse(fs.readFileSync(STATE_FILE)).lastRunDate);
 }
 
 const res = await axios.get(
-https://api.wolvesville.com/clans/${CLAN_ID}/ledger,
+`https://api.wolvesville.com/clans/${CLAN_ID}/ledger`,
 { headers: { Authorization: Bot ${API_TOKEN} } }
 );
 
@@ -90,7 +90,7 @@ JSON.stringify({ lastRunDate: new Date().toISOString() }, null, 2)
 if (sentCount === 0) {
 console.log("🔕 Yeni bağış yok.");
 } else {
-console.log(✅ ${sentCount} yeni bağış işlendi.);
+console.log(`✅ ${sentCount} yeni bağış işlendi.`);
 }
 }
 
