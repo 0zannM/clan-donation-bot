@@ -2,7 +2,7 @@ name: Clan Donation Bot
 
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "*/10 * * * *"   # 10 dakikada bir (test için */1 olabilir)
   workflow_dispatch:
 
 jobs:
@@ -12,12 +12,6 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-
-      - name: Download ledger state
-        uses: actions/download-artifact@v4
-        with:
-          name: ledger-state
-        continue-on-error: true
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -32,9 +26,3 @@ jobs:
           API_TOKEN: ${{ secrets.API_TOKEN }}
           CLAN_ID: ${{ secrets.CLAN_ID }}
         run: node index.js
-
-      - name: Upload ledger state
-        uses: actions/upload-artifact@v4
-        with:
-          name: ledger-state
-          path: ledger-state.json
