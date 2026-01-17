@@ -55,7 +55,7 @@ for (const entry of res.data) {
 if (!entry.gold || entry.gold < 50) continue;
 if (!entry.playerUsername) continue;
 
-const entryDate = new Date(entry.date);  
+const entryDate = new Date(entry.creationTime);  
 
 // ⛔ Script çalışmadan önceyse tamamen yok say  
 if (lastRunDate && entryDate <= lastRunDate) continue;  
@@ -73,7 +73,7 @@ const message = template
 await axios.post(  
   `https://api.wolvesville.com/clans/${CLAN_ID}/chat`,  
   { message },  
-  { headers: { Authorization: `Bot ${API_TOKEN}` } }  
+  { headers: { Authorization: `Bot ${API_TOKEN}` } }
 );  
 
 console.log("💬 Gönderildi:", message);  
