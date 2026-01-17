@@ -2,7 +2,7 @@ name: Clan Donation Bot
 
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "*/1 * * * *"
   workflow_dispatch:
 
 jobs:
