@@ -46,7 +46,7 @@ lastRunDate = new Date(JSON.parse(fs.readFileSync(STATE_FILE)).lastRunDate);
 
 const res = await axios.get(
 `https://api.wolvesville.com/clans/${CLAN_ID}/ledger`,
-{ headers: { Authorization: Bot ${API_TOKEN} } }
+{ headers: { Authorization: `Bot ${API_TOKEN}` } }
 );
 
 let sentCount = 0;
