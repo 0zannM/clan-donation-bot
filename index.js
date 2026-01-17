@@ -1,82 +1,72 @@
 const axios = require("axios");
 const fs = require("fs");
-const path = require("path");
-
-const STATE_FILE = path.join(__dirname, "last_state.json");
 
 function randomFrom(array) {
   return array[Math.floor(Math.random() * array.length)];
 }
 
+/* 🔔 MESAJ HAVUZLARI */
 const goldMessages = {
   small: [
     "{user}, {amount} altın sadaka verdi, tebrik ederiz.",
-    "{user} evsizlere umut olmak adına {amount} altın bağışladı",
-    "{user} ekonomik durumu çok iyi olmasa da {amount} altın bağışı çok görmedi"
+    "{user} evsizlere umut olmak adına {amount} altın bağışladı.",
+    "{user} ekonomik durumu çok iyi olmasa da {amount} altın bağışı çok görmedi."
   ],
+
   medium: [
-    "{user}, znciler daha iyi bir yaşamı hak ediyor diye düşünüp {amount} altın bağışladı",
+    "{user}, znciler daha iyi bir yaşamı hak ediyor diye düşünüp {amount} altın bağışladı.",
     "{user}, klanı {amount} altınla güçlendirdi!",
     "{user}, {amount} altınla klana destek oldu!"
   ],
+
   big: [
-    "{user}, hiçbir znci yoksulluk içinde olmasın diye {amount} altını hayır kurumuna bağışladı",
-    "Altyapı çalışmalarına fon sağlamak isteyen {user}, {amount} altın bağışladı",
-    "{amount} altın bağışlayan {user}'i tebrik ederiz"
+    "{user}, hiçbir znci yoksulluk içinde olmasın diye {amount} altını hayır kurumuna bağışladı.",
+    "Altyapı çalışmalarına fon sağlamak isteyen {user}, {amount} altın bağışladı.",
+    "{amount} altın bağışlayan {user}'i tebrik ederiz."
   ],
+
   huge: [
-    "{user} cömert gününde. Klana yaptığı bu büyük {amount} altın bağışla Zncidirenis yüzyılını başlatmış bulunuyor",
-    "{user}, büyük uğraşlarla kazandığı {amount} altınını hazineye bağışlayıp çiftçimize mazot, emekliye tebessüm oldu.",
-    "{user}; para benim için değersiz, asıl önemli olan zncilere destek olmaktır diyip birikimi olan {amount} altını bağışladı."
+    "{user} cömert gününde. Klana yaptığı {amount} altın bağışla tarih yazdı!",
+    "{user}, büyük emeklerle kazandığı {amount} altını klan hazinesine bağışladı.",
+    "{user}; para benim için değersiz diyerek {amount} altını klana bağışladı."
   ]
 };
 
+/* 🔐 ENV */
 const API_TOKEN = process.env.API_TOKEN;
 const CLAN_ID = process.env.CLAN_ID;
 
-// STATE OKU
-function loadState() {
-  if (!fs.existsSync(STATE_FILE)) {
-    return { lastProcessedDate: null };
-  }
-  return JSON.parse(fs.readFileSync(STATE_FILE, "utf8"));
-}
+/* 💾 STATE */
+const STATE_FILE = "ledger-state.json";
 
-// STATE YAZ
-function saveState(date) {
-  fs.writeFileSync(
-    STATE_FILE,
-    JSON.stringify({ lastProcessedDate: date }, null, 2)
-  );
-}
-
+/* 🚀 ANA FONKSİYON */
 async function checkLedger() {
   console.log("⏳ Ledger kontrol ediliyor...");
 
-  const state = loadState();
-  const lastDate = state.lastProcessedDate
-    ? new Date(state.lastProcessedDate)
-    : new Date(0);
-
-  const res = await axios.get(
-    `https://api.wolvesville.com/clans/${CLAN_ID}/ledger`,
-    { headers: { Authorization: `Bot ${API_TOKEN}` } }
-  );
-
-  const donations = res.data
-    .filter(entry =>
-      entry.gold > 0 &&
-      entry.playerUsername &&
-      new Date(entry.date) > lastDate
-    )
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
-
-  if (donations.length === 0) {
-    console.log("Yeni altın bağışı yok.");
-    return;
+  /* --- STATE OKU --- */
+  let lastDate = null;
+  if (fs.existsSync(STATE_FILE)) {
+    lastDate = JSON.parse(fs.readFileSync(STATE_FILE)).lastDate;
   }
 
-  for (const entry of donations) {
+  /* --- LEDGER ÇAĞRISI --- */
+  const url = lastDate
+    ? `https://api.wolvesville.com/clans/${CLAN_ID}/ledger?oldest=${lastDate}`
+    : `https://api.wolvesville.com/clans/${CLAN_ID}/ledger`;
+
+  const res = await axios.get(url, {
+    headers: { Authorization: `Bot ${API_TOKEN}` }
+  });
+
+  let newestDate = lastDate;
+  let sentCount = 0;
+
+  /* --- KAYITLARI İŞLE --- */
+  for (const entry of res.data) {
+    // SADECE ALTIN BAĞIŞI
+    if (entry.type !== "DONATION_GOLD") continue;
+    if (!entry.playerUsername || !entry.gold) continue;
+
     let template;
 
     if (entry.gold < 50) {
@@ -95,6 +85,7 @@ async function checkLedger() {
       .replace("{user}", entry.playerUsername)
       .replace("{amount}", entry.gold);
 
+    /* --- CHAT MESAJI --- */
     await axios.post(
       `https://api.wolvesville.com/clans/${CLAN_ID}/chat`,
       { message },
@@ -102,15 +93,32 @@ async function checkLedger() {
     );
 
     console.log("💬 Gönderildi:", message);
+    sentCount++;
 
-    // 🔐 HER BAĞIŞTAN SONRA STATE GÜNCELLE
-    saveState(entry.date);
+    if (!newestDate || entry.date > newestDate) {
+      newestDate = entry.date;
+    }
+  }
+
+  /* --- STATE GÜNCELLE --- */
+  if (newestDate) {
+    fs.writeFileSync(
+      STATE_FILE,
+      JSON.stringify({ lastDate: newestDate }, null, 2)
+    );
+  }
+
+  if (sentCount === 0) {
+    console.log("🔕 Yeni altın bağışı yok.");
+  } else {
+    console.log(`✅ ${sentCount} bağış mesajı gönderildi.`);
   }
 }
 
+/* ▶️ ÇALIŞTIR */
 checkLedger().catch(err => {
   console.error(
-    "HATA:",
+    "❌ HATA:",
     err.response?.status,
     err.response?.data || err.message
   );
