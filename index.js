@@ -52,6 +52,7 @@ const res = await axios.get(
 let sentCount = 0;
 
 for (const entry of res.data) {
+  console.log("DEBUG:", entry.creationTime, "lastRun:", lastRunDate);
 if (!entry.gold || entry.gold < 50) continue;
 if (!entry.playerUsername) continue;
 
