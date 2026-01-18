@@ -3,10 +3,15 @@ const fs = require("fs");
 
 /* 🔔 MESAJ HAVUZLARI */
 const goldMessages = {
+  verysmall: [
+    "{user}, geçen seneden kalma montunun cebinden bulduğu {amount} kuruşu hazineye bağışladı."
+    "{user}, ekonomik sıkıntılarına rağmen zar zor biriktirdiği {amount} altını hazineye bağışladı."
+    "Vergilerini tam ödemediğini fark eden {user}, kalan {amount} dinarı geç olmadan hazineye bağışladı."
+  ],
   small: [
     "{user}, {amount} altın sadaka verdi, tebrik ederiz.",
     "{user} evsizlere umut olmak adına {amount} altın bağışladı.",
-    "{user} ekonomik durumu çok iyi olmasa da {amount} altın bağışı çok görmedi."
+    "{user}, çiftçimize mazot olsun diyip {amount} altın bağış yaptı."
   ],
   medium: [
     "{user}, znciler daha iyi bir yaşamı hak ediyor diye düşünüp {amount} altın bağışladı.",
@@ -78,7 +83,8 @@ async function checkLedger() {
 
   // 🔹 Altın miktarına göre mesaj seç
   let template;
-  if (lastEntry.gold < 250) template = randomFrom(goldMessages.small);
+  if (lastEntry.gold < 50) template = randomFrom(goldMessages.verysmall);
+  else if (lastEntry.gold< 250) template = randomFrom(goldMessages.small);
   else if (lastEntry.gold < 650) template = randomFrom(goldMessages.medium);
   else if (lastEntry.gold < 1000) template = randomFrom(goldMessages.big);
   else template = randomFrom(goldMessages.huge);
