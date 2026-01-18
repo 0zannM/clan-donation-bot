@@ -38,10 +38,16 @@ async function checkLedger() {
   console.log("⏳ Ledger kontrol ediliyor...");
 
   // 🔐 Son işlenen bağış zamanı
-  let lastRunDate = null;
-  if (fs.existsSync(STATE_FILE)) {
-    lastRunDate = JSON.parse(fs.readFileSync(STATE_FILE)).lastRunDate;
+  // 🔐 Son işlenen bağış zamanı
+let lastRunDate = null;
+if (fs.existsSync(STATE_FILE)) {
+  try {
+    const data = JSON.parse(fs.readFileSync(STATE_FILE));
+    if (data.lastRunDate) lastRunDate = new Date(data.lastRunDate);
+  } catch {
+    lastRunDate = null; // JSON okunamazsa sıfırla
   }
+}
 
   const res = await axios.get(
     `https://api.wolvesville.com/clans/${CLAN_ID}/ledger`,
@@ -93,9 +99,9 @@ async function checkLedger() {
   // 💾 State dosyasını güncelle
   if (lastRunDate) {
     fs.writeFileSync(
-      STATE_FILE,
-      JSON.stringify({ lastRunDate }, null, 2)
-    );
+  STATE_FILE,
+  JSON.stringify({ lastRunDate: new Date(entryDate).toISOString() }, null, 2)
+);
   }
 
   if (sentCount === 0) {
