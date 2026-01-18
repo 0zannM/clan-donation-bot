@@ -11,7 +11,7 @@ const goldMessages = {
     "{user}, bugünkü simit parasını feda edip {amount} altın bağışladı.",
     "{user}, küçük adımlarla büyük hayallere diyerek {amount} altınını feda etti.",
     "{user}, mütevazı bir destek olarak {amount} altın bağışladı.",
-    "{user}, ‘bugün de aç yatarız’ diyerek {amount} altın bağışladı.",
+    "{user}, ‘gerekirse soğan ekmek yeriz’ diyerek {amount} altın bağışladı.",
     "{user}, imkânları sınırlı olsa da {amount} altınla katkı sundu.",
     "{user}, bir yerden başlamak lazım diyerek {amount} altını verdi."
   ],
