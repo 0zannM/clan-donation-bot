@@ -1,8 +1,12 @@
 const axios = require("axios");
 const fs = require("fs");
 
-function randomFrom(array) {
-  return array[Math.floor(Math.random() * array.length)];
+const API_TOKEN = process.env.API_TOKEN;
+const CLAN_ID = process.env.CLAN_ID;
+const STATE_FILE = "ledger-state.json";
+
+function randomFrom(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
 }
 
 const goldMessages = {
@@ -24,79 +28,79 @@ const goldMessages = {
   huge: [
     "{user} cömert gününde. Klana yaptığı {amount} altın bağışla tarih yazdı!",
     "{user}, büyük emeklerle kazandığı {amount} altını klan hazinesine bağışladı.",
-    "{user}; para benim için değersiz diyerek {amount} altını klana bağışladı."
+    "{user}; para benim için değersiz diyerek {amount} altını znci halkına feda olsun diyerek klana bağışladı."
   ]
 };
-
-const API_TOKEN = process.env.API_TOKEN;
-const CLAN_ID = process.env.CLAN_ID;
-const STATE_FILE = "ledger-state.json";
 
 async function checkLedger() {
   console.log("⏳ Ledger kontrol ediliyor...");
 
-  // 🔐 EN SON İŞLENEN BAĞIŞ ZAMANI
+  // 1️⃣ State oku
   let lastRunDate = null;
   if (fs.existsSync(STATE_FILE)) {
-    lastRunDate = JSON.parse(fs.readFileSync(STATE_FILE)).lastRunDate;
+    const state = JSON.parse(fs.readFileSync(STATE_FILE, "utf8"));
+    if (state.lastRunDate) {
+      lastRunDate = new Date(state.lastRunDate);
+    }
   }
 
+  // 2️⃣ Ledger çek
   const res = await axios.get(
     `https://api.wolvesville.com/clans/${CLAN_ID}/ledger`,
     { headers: { Authorization: `Bot ${API_TOKEN}` } }
   );
 
-  let newestProcessedTime = lastRunDate;
-  let sentCount = 0;
-
-  for (const entry of res.data) {
-    if (!entry.gold || entry.gold < 50) continue;
-    if (!entry.playerUsername) continue;
-    if (!entry.creationTime) continue;
-
-    const entryTime = entry.creationTime;
-
-    // ❌ Daha önce işlendiyse geç
-    if (lastRunDate && entryTime <= lastRunDate) continue;
-
-    let template;
-    if (entry.gold < 250) template = randomFrom(goldMessages.small);
-    else if (entry.gold < 650) template = randomFrom(goldMessages.medium);
-    else if (entry.gold < 1000) template = randomFrom(goldMessages.big);
-    else template = randomFrom(goldMessages.huge);
-
-    const message = template
-      .replace("{user}", entry.playerUsername)
-      .replace("{amount}", entry.gold);
-
-    await axios.post(
-      `https://api.wolvesville.com/clans/${CLAN_ID}/chat`,
-      { message },
-      { headers: { Authorization: `Bot ${API_TOKEN}` } }
+  // 3️⃣ Sadece geçerli bağışları al
+  const validDonations = res.data
+    .filter(e =>
+      e.gold >= 50 &&
+      e.playerUsername &&
+      e.creationTime &&
+      (!lastRunDate || new Date(e.creationTime) > lastRunDate)
+    )
+    .sort((a, b) =>
+      new Date(a.creationTime) - new Date(b.creationTime)
     );
 
-    console.log("💬 Gönderildi:", message);
-    sentCount++;
-
-    // ✅ En yeni bağışı takip et
-    if (!newestProcessedTime || entryTime > newestProcessedTime) {
-      newestProcessedTime = entryTime;
-    }
-  }
-
-  // 🧱 SADECE BAĞIŞ ZAMANI YAZ
-  if (newestProcessedTime) {
-    fs.writeFileSync(
-      STATE_FILE,
-      JSON.stringify({ lastRunDate: newestProcessedTime }, null, 2)
-    );
-  }
-
-  if (sentCount === 0) {
+  // 4️⃣ Yeni bağış yoksa çık
+  if (validDonations.length === 0) {
     console.log("🔕 Yeni bağış yok.");
-  } else {
-    console.log(`✅ ${sentCount} yeni bağış işlendi.`);
+    return;
   }
+
+  // 5️⃣ SADECE EN SON BAĞIŞ
+  const donation = validDonations[validDonations.length - 1];
+
+  let template;
+  if (donation.gold < 250) template = randomFrom(goldMessages.small);
+  else if (donation.gold < 650) template = randomFrom(goldMessages.medium);
+  else if (donation.gold < 1000) template = randomFrom(goldMessages.big);
+  else template = randomFrom(goldMessages.huge);
+
+  const message = template
+    .replace("{user}", donation.playerUsername)
+    .replace("{amount}", donation.gold);
+
+  // 6️⃣ Mesaj gönder
+  await axios.post(
+    `https://api.wolvesville.com/clans/${CLAN_ID}/chat`,
+    { message },
+    { headers: { Authorization: `Bot ${API_TOKEN}` } }
+  );
+
+  console.log("💬 Gönderildi:", message);
+
+  // 7️⃣ State güncelle (EN SON BAĞIŞIN ZAMANI)
+  fs.writeFileSync(
+    STATE_FILE,
+    JSON.stringify(
+      { lastRunDate: donation.creationTime },
+      null,
+      2
+    )
+  );
+
+  console.log("🕒 State güncellendi:", donation.creationTime);
 }
 
 checkLedger().catch(err => {
