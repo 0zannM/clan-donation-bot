@@ -19,12 +19,15 @@ const goldMessages = {
     "{user}, zeñci imparatorluğuna olan bağlılığını {amount} altınla gösterdi.",
     "{user}, {amount} altın sadaka verdi, tebrik ederiz.",
     "{user} evsizlere umut olmak adına {amount} altın bağışladı.",
-    "{user}, çiftçimize mazot olsun diyip {amount} altın bağış yaptı."
+    "{user}, çiftçimize mazot olsun diyip {amount} altın bağış yaptı.",
+    "Gerekirse bu ay kemer sıkmayı göze alan {user}, hazineye {amount} altın bağışta bulundu",
+    "{user}, zeñcilere refah dolu bir yaşam sunmaya katkı sağlamak için {amount} altını gözden çıkardı"
   ],
   medium: [
     "{user}, znciler daha iyi bir yaşamı hak ediyor diye düşünüp {amount} altın bağışladı.",
     "{user}, klanı {amount} altınla güçlendirdi!",
-    "{user}, {amount} altınla klana destek oldu!"
+    "{user}, {amount} altınla klana destek oldu!",
+    "{user}, {amount} altın bağışlayarak döner sosu üretim merkezlerine fon sağladı"
   ],
   big: [
     "{user}, klanın refahı için {amount} altın bağışladı.",
