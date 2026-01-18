@@ -7,9 +7,16 @@ const goldMessages = {
   verysmall: [
     "{user}, geçen seneden kalma montunun cebinden bulduğu {amount} kuruşu hazineye bağışladı.",
     "{user}, ekonomik sıkıntılarına rağmen zar zor biriktirdiği {amount} altını hazineye bağışladı.",
-    "Vergilerini tam ödemediğini fark eden {user}, kalan {amount} dinarı geç olmadan hazineye bağışladı."
+    "Vergilerini tam ödemediğini fark eden {user}, kalan {amount} dinarı geç olmadan hazineye bağışladı.",
+    "{user}, bugünkü simit parasını feda edip {amount} altın bağışladı.",
+    "{user}, küçük adımlarla büyük hayallere diyerek {amount} altınını feda etti.",
+    "{user}, mütevazı bir destek olarak {amount} altın bağışladı.",
+    "{user}, ‘bugün de aç yatarız’ diyerek {amount} altın bağışladı.",
+    "{user}, imkânları sınırlı olsa da {amount} altınla katkı sundu.",
+    "{user}, bir yerden başlamak lazım diyerek {amount} altını verdi."
   ],
   small: [
+    "{user}, zeñci imparatorluğuna olan bağlılığını {amount} altınla gösterdi.",
     "{user}, {amount} altın sadaka verdi, tebrik ederiz.",
     "{user} evsizlere umut olmak adına {amount} altın bağışladı.",
     "{user}, çiftçimize mazot olsun diyip {amount} altın bağış yaptı."
@@ -20,11 +27,14 @@ const goldMessages = {
     "{user}, {amount} altınla klana destek oldu!"
   ],
   big: [
+    "{user}, klanın refahı için {amount} altın bağışladı.",
     "{user}, hiçbir znci yoksulluk içinde olmasın diye {amount} altını hayır kurumuna bağışladı.",
     "Altyapı çalışmalarına fon sağlamak isteyen {user}, {amount} altın bağışladı.",
     "{amount} altın bağışlayan {user}'i tebrik ederiz."
   ],
   huge: [
+    "{user}, klan tarihine geçecek bir bağış yaptı: {amount} altın.",
+    "{user}, klanın geleceği için {amount} altınlık dev bir fedakârlık yaptı.",
     "{user} cömert gününde. Klana yaptığı {amount} altın bağışla tarih yazdı!",
     "{user}, büyük emeklerle kazandığı {amount} altını klan hazinesine bağışladı.",
     "{user}; para benim için değersiz diyerek {amount} altını znci halkına feda olsun diyerek klana bağışladı."
