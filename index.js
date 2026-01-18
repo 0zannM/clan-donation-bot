@@ -28,7 +28,8 @@ const goldMessages = {
 /* 🔐 ENV */
 const API_TOKEN = process.env.API_TOKEN;
 const CLAN_ID = process.env.CLAN_ID;
-const STATE_FILE = "ledger-state.json";
+const path = require("path"); // bu satırı ekle
+const STATE_FILE = path.join(__dirname, "ledger-state.json"); // eski STATE_FILE'ı değiştir
 
 /* 🎲 Rastgele seçim */
 function randomFrom(array) {
