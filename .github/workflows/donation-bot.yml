@@ -1,1 +1,33 @@
+name: Clan Donation Bot
 
+# Her 10 dakikada bir çalışacak
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: # manuel çalıştırma opsiyonu
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Repo’yu çek
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # Node.js kur
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      # Bağımlılıkları yükle
+      - name: Install dependencies
+        run: npm install
+
+      # Botu çalıştır
+      - name: Run Clan Donation Bot
+        env:
+          API_TOKEN: ${{ secrets.API_TOKEN }}
+          CLAN_ID: ${{ secrets.CLAN_ID }}
+        run: node index.js
