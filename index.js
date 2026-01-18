@@ -39,13 +39,13 @@ async function checkLedger() {
   console.log("⏳ Ledger kontrol ediliyor...");
 
   // 🔐 Son işlenen bağış zamanı
-  let lastRunDate = null;
+  let lastRunDate = new Date("2026-01-18T02:00:00.000Z"); // başlangıç tarihi
   if (fs.existsSync(STATE_FILE)) {
     try {
       const data = JSON.parse(fs.readFileSync(STATE_FILE));
       if (data.lastRunDate) lastRunDate = new Date(data.lastRunDate);
     } catch {
-      lastRunDate = null;
+      // okunamazsa başlangıç tarihi kullanılacak
     }
   }
 
@@ -60,35 +60,31 @@ async function checkLedger() {
     return;
   }
 
-  // 🔹 Sadece en son bağışı bul
-  const sortedLedger = res.data
+  // 🔹 Sadece son bağışı bul
+  const newEntries = res.data
     .filter(e => e.gold && e.playerUsername)
-    .sort((a, b) => new Date(b.creationTime) - new Date(a.creationTime));
+    .filter(e => new Date(e.creationTime) > lastRunDate);
 
-  const latest = sortedLedger[0]; // en son bağış
-  if (!latest) {
-    console.log("🔕 İşlenecek bağış yok.");
-    return;
-  }
-
-  const latestDate = new Date(latest.creationTime);
-
-  // ⛔ Daha önce işlenmişse atla
-  if (lastRunDate && latestDate <= lastRunDate) {
+  if (newEntries.length === 0) {
     console.log("🔕 Yeni bağış yok.");
     return;
   }
 
+  // En son bağışı al
+  const lastEntry = newEntries.reduce((a, b) =>
+    new Date(a.creationTime) > new Date(b.creationTime) ? a : b
+  );
+
   // 🔹 Altın miktarına göre mesaj seç
   let template;
-  if (latest.gold < 250) template = randomFrom(goldMessages.small);
-  else if (latest.gold < 650) template = randomFrom(goldMessages.medium);
-  else if (latest.gold < 1000) template = randomFrom(goldMessages.big);
+  if (lastEntry.gold < 250) template = randomFrom(goldMessages.small);
+  else if (lastEntry.gold < 650) template = randomFrom(goldMessages.medium);
+  else if (lastEntry.gold < 1000) template = randomFrom(goldMessages.big);
   else template = randomFrom(goldMessages.huge);
 
   const message = template
-    .replace("{user}", latest.playerUsername)
-    .replace("{amount}", latest.gold);
+    .replace("{user}", lastEntry.playerUsername)
+    .replace("{amount}", lastEntry.gold);
 
   // Mesaj gönder
   await axios.post(
@@ -99,11 +95,12 @@ async function checkLedger() {
 
   console.log("💬 Gönderildi:", message);
 
-  // 🔹 Son işlenen bağışı kaydet
+  // 🔹 Son bağışı kaydet
   fs.writeFileSync(
     STATE_FILE,
-    JSON.stringify({ lastRunDate: latestDate.toISOString() }, null, 2)
+    JSON.stringify({ lastRunDate: new Date(lastEntry.creationTime).toISOString() }, null, 2)
   );
+  console.log("✅ Son bağış işlendi ve state güncellendi.");
 }
 
 checkLedger().catch(err => {
