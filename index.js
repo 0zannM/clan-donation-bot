@@ -45,7 +45,7 @@ async function checkLedger() {
       const data = JSON.parse(fs.readFileSync(STATE_FILE));
       if (data.lastRunDate) lastRunDate = new Date(data.lastRunDate);
     } catch {
-      lastRunDate = null; // okunamazsa sıfırla
+      lastRunDate = null;
     }
   }
 
@@ -111,16 +111,7 @@ async function checkLedger() {
   }
 }
 
-checkLedger().catch(err => {
-  console.error("❌ HATA:", err.response?.status, err.response?.data || err.message);
-});
-  if (sentCount === 0) {
-    console.log("🔕 Yeni bağış yok.");
-  } else {
-    console.log(`✅ ${sentCount} yeni bağış işlendi.`);
-  }
-}
-
+// Tek çağrı burada yeterli
 checkLedger().catch(err => {
   console.error("❌ HATA:", err.response?.status, err.response?.data || err.message);
 });
