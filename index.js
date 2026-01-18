@@ -4,9 +4,9 @@ const fs = require("fs");
 /* 🔔 MESAJ HAVUZLARI */
 const goldMessages = {
   verysmall: [
-    "{user}, geçen seneden kalma montunun cebinden bulduğu {amount} kuruşu hazineye bağışladı."
-    "{user}, ekonomik sıkıntılarına rağmen zar zor biriktirdiği {amount} altını hazineye bağışladı."
-    "Vergilerini tam ödemediğini fark eden {user}, kalan {amount} dinarı geç olmadan hazineye bağışladı."
+    "{user}, geçen seneden kalma montunun cebinden bulduğu {amount} kuruşu hazineye bağışladı.",
+    "{user}, ekonomik sıkıntılarına rağmen zar zor biriktirdiği {amount} altını hazineye bağışladı.",
+    "Vergilerini tam ödemediğini fark eden {user}, kalan {amount} dinarı geç olmadan hazineye bağışladı.",
   ],
   small: [
     "{user}, {amount} altın sadaka verdi, tebrik ederiz.",
