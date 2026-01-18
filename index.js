@@ -96,16 +96,18 @@ async function checkLedger() {
 
   console.log("💬 Gönderildi:", message);
 
-  // 🔹 Son bağışı kaydet
+ // 🔹 Son bağışı kaydet
   try {
-  fs.writeFileSync(
-    STATE_FILE,
-    JSON.stringify({ lastRunDate: new Date(lastEntry.creationTime).toISOString() }, null, 2)
-  );
-  console.log("✅ Son bağış işlendi ve state güncellendi.");
-} catch (err) {
-  console.error("❌ State dosyası yazılamadı:", err.message);
+    fs.writeFileSync(
+      STATE_FILE,
+      JSON.stringify({ lastRunDate: new Date(lastEntry.creationTime).toISOString() }, null, 2)
+    );
+    console.log("✅ Son bağış işlendi ve state güncellendi.");
+  } catch (err) {
+    console.error("❌ State dosyası yazılamadı:", err.message);
   }
+} // ← burası checkLedger fonksiyonunun kapanışı
+
 checkLedger().catch(err => {
   console.error("❌ HATA:", err.response?.status, err.response?.data || err.message);
 });
