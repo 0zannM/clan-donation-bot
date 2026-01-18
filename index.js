@@ -74,7 +74,7 @@ async function checkLedger() {
 
   // 🔹 lastRunDate’ten sonraki TÜM yeni bağışları al
   const newEntries = res.data
-    .filter(e => e && e.playerUsername && typeof e.gold === "number" && e.creationTime)
+    .filter(e => e && e.playerUsername && typeof e.gold === "number" && e.creationTime && e.gold > 0)
     .filter(e => new Date(e.creationTime) > lastRunDate);
 
   if (newEntries.length === 0) {
