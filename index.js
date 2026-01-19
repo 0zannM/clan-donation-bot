@@ -5,42 +5,42 @@ const path = require("path");
 /* 🔔 MESAJ HAVUZLARI */
 const goldMessages = {
   verysmall: [
-    "{user}, geçen seneden kalma montunun cebinden bulduğu {amount} kuruşu hazineye bağışladı.",
-    "{user}, ekonomik sıkıntılarına rağmen zar zor biriktirdiği {amount} altını hazineye bağışladı.",
-    "Vergilerini tam ödemediğini fark eden {user}, kalan {amount} dinarı geç olmadan hazineye bağışladı.",
-    "{user}, bugünkü simit parasını feda edip {amount} altın bağışladı.",
-    "{user}, küçük adımlarla büyük hayallere diyerek {amount} altınını feda etti.",
-    "{user}, mütevazı bir destek olarak {amount} altın bağışladı.",
-    "{user}, ‘gerekirse soğan ekmek yeriz’ diyerek {amount} altın bağışladı.",
-    "{user}, imkânları sınırlı olsa da {amount} altınla katkı sundu.",
-    "{user}, bir yerden başlamak lazım diyerek {amount} altını verdi."
+    "@{user}, geçen seneden kalma montunun cebinden bulduğu {amount} kuruşu hazineye bağışladı.",
+    "@{user}, ekonomik sıkıntılarına rağmen zar zor biriktirdiği {amount} altını hazineye bağışladı.",
+    "Vergilerini tam ödemediğini fark eden @{user}, kalan {amount} dinarı geç olmadan hazineye bağışladı.",
+    "@{user}, bugünkü simit parasını feda edip {amount} altın bağışladı.",
+    "@{user}, küçük adımlarla büyük hayallere diyerek {amount} altınını feda etti.",
+    "@{user}, mütevazı bir destek olarak {amount} altın bağışladı.",
+    "@{user}, ‘gerekirse soğan ekmek yeriz’ diyerek {amount} altın bağışladı.",
+    "@{user}, imkânları sınırlı olsa da {amount} altınla katkı sundu.",
+    "@{user}, bir yerden başlamak lazım diyerek {amount} altını verdi."
   ],
   small: [
-    "{user}, zeñci imparatorluğuna olan bağlılığını {amount} altınla gösterdi.",
-    "{user}, {amount} altın sadaka verdi, tebrik ederiz.",
-    "{user} evsizlere umut olmak adına {amount} altın bağışladı.",
-    "{user}, çiftçimize mazot olsun diyip {amount} altın bağış yaptı.",
-    "Gerekirse bu ay kemer sıkmayı göze alan {user}, hazineye {amount} altın bağışta bulundu",
-    "{user}, zeñcilere refah dolu bir yaşam sunmaya katkı sağlamak için {amount} altını gözden çıkardı"
+    "@{user}, zeñci imparatorluğuna olan bağlılığını {amount} altınla gösterdi.",
+    "@{user}, {amount} altın sadaka verdi, tebrik ederiz.",
+    "@{user} evsizlere umut olmak adına {amount} altın bağışladı.",
+    "@{user}, çiftçimize mazot olsun diyip {amount} altın bağış yaptı.",
+    "Gerekirse bu ay kemer sıkmayı göze alan @{user}, hazineye {amount} altın bağışta bulundu",
+    "@{user}, zeñcilere refah dolu bir yaşam sunmaya katkı sağlamak için {amount} altını gözden çıkardı"
   ],
   medium: [
-    "{user}, znciler daha iyi bir yaşamı hak ediyor diye düşünüp {amount} altın bağışladı.",
-    "{user}, klanı {amount} altınla güçlendirdi!",
-    "{user}, {amount} altınla klana destek oldu!",
-    "{user}, {amount} altın bağışlayarak döner sosu üretim merkezlerine fon sağladı"
+    "@{user}, znciler daha iyi bir yaşamı hak ediyor diye düşünüp {amount} altın bağışladı.",
+    "@{user}, klanı {amount} altınla güçlendirdi!",
+    "@{user}, {amount} altınla klana destek oldu!",
+    "@{user}, {amount} altın bağışlayarak döner sosu üretim merkezlerine fon sağladı"
   ],
   big: [
-    "{user}, klanın refahı için {amount} altın bağışladı.",
-    "{user}, hiçbir znci yoksulluk içinde olmasın diye {amount} altını hayır kurumuna bağışladı.",
-    "Altyapı çalışmalarına fon sağlamak isteyen {user}, {amount} altın bağışladı.",
-    "{amount} altın bağışlayan {user}'i tebrik ederiz."
+    "@{user}, klanın refahı için {amount} altın bağışladı.",
+    "@{user}, hiçbir znci yoksulluk içinde olmasın diye {amount} altını hayır kurumuna bağışladı.",
+    "Altyapı çalışmalarına fon sağlamak isteyen @{user}, {amount} altın bağışladı.",
+    "Bütçeyi zorlayarak {amount} altın bağışlayan @{user}'i tebrik ederiz."
   ],
   huge: [
-    "{user}, klan tarihine geçecek bir bağış yaptı: {amount} altın.",
-    "{user}, klanın geleceği için {amount} altınlık dev bir fedakârlık yaptı.",
-    "{user} cömert gününde. Klana yaptığı {amount} altın bağışla tarih yazdı!",
-    "{user}, büyük emeklerle kazandığı {amount} altını klan hazinesine bağışladı.",
-    "{user}; para benim için değersiz diyerek {amount} altını znci halkına feda olsun diyerek klana bağışladı."
+    "@{user}, klan tarihine geçecek bir bağış yaptı: {amount} altın.",
+    "@{user}, klanın geleceği için {amount} altınlık dev bir fedakârlık yaptı.",
+    "@{user} cömert gününde. Klana yaptığı {amount} altın bağışla tarih yazdı!",
+    "@{user}, büyük emeklerle kazandığı {amount} altını klan hazinesine bağışladı.",
+    "@{user}; para benim için değersiz diyerek {amount} altını znci halkına feda olsun diyerek klana bağışladı."
   ]
 };
 
