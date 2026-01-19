@@ -12,11 +12,15 @@ const goldMessages = {
     "@{user}, küçük adımlarla büyük hayallere diyerek {amount} altınını feda etti.",
     "@{user}, mütevazı bir destek olarak {amount} altın bağışladı.",
     "@{user}, ‘gerekirse soğan ekmek yeriz’ diyerek {amount} altın bağışladı.",
+    "@{user}, vergiler azaltılsın diye şikayet ede ede {amount} altın ödeme yaptı.",
     "@{user}, imkânları sınırlı olsa da {amount} altınla katkı sundu.",
+    "@{user}, dengeleri sarsacak ölçekteki {amount} kuruşu hazineye bağışladı.",
+    "@{user}, altın sayacını kıpırdamaya tenezzül ettirmeyen {amount} altını hazineye bağışladı.",
     "@{user}, bir yerden başlamak lazım diyerek {amount} altını verdi."
   ],
   small: [
     "@{user}, zeñci imparatorluğuna olan bağlılığını {amount} altınla gösterdi.",
+    "@{user}, bütçe açığını kapatmaya yardım olmak için {amount} altın bağışladı.",
     "@{user}, {amount} altın sadaka verdi, tebrik ederiz.",
     "@{user} evsizlere umut olmak adına {amount} altın bağışladı.",
     "@{user}, çiftçimize mazot olsun diyip {amount} altın bağış yaptı.",
