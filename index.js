@@ -7,7 +7,7 @@ const goldMessages = {
   verysmall: [
     "@{user}, geçen seneden kalma montunun cebinden bulduğu {amount} kuruşu hazineye bağışladı.",
     "@{user}, ekonomik sıkıntılarına rağmen zar zor biriktirdiği {amount} altını hazineye bağışladı.",
-    "Vergilerini tam ödemediğini fark eden @{user}, kalan {amount} dinarı geç olmadan hazineye bağışladı.",
+    "Vergilerini tam ödemediğini fark eden @{user}, kalan {amount} dinarı geç olmadan hazineye aktardı.",
     "@{user}, bugünkü simit parasını feda edip {amount} altın bağışladı.",
     "@{user}, küçük adımlarla büyük hayallere diyerek {amount} altınını feda etti.",
     "@{user}, mütevazı bir destek olarak {amount} altın bağışladı.",
