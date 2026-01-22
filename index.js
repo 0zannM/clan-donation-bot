@@ -44,7 +44,7 @@ const goldMessages = {
     "@{user}, klanın geleceği için {amount} altınlık dev bir fedakârlık yaptı.",
     "@{user} cömert gününde. Klana yaptığı {amount} altın bağışla tarih yazdı!",
     "@{user}, büyük emeklerle kazandığı {amount} altını klan hazinesine bağışladı.",
-    "@{user}; para benim için değersiz diyerek {amount} altını znci halkına feda olsun diyerek klana bağışladı."
+    "@{user}; para benim için değersiz, {amount} altın znci halkına feda olsun diyerek klana bağışladı."
   ]
 };
 
