@@ -18,7 +18,7 @@ const goldMessages = {
     "@{user}, hazineye katkı olsun diye {amount} altın bıraktı.",
     "@{user}, hesapladığından {amount} fazla altın biriktirince 'gerisi hazinenin olsun' dedi.",
     "@{user}, gönüllü olarak {amount} altını hazineye bağışladı.",
-    "@{user}, dönerciyle olan borçları kapatmak adına {amount} altın ödedi.",
+    "@{user}, dönerciyle olan borçlarını kapatmak adına {amount} altın ödedi.",
     "@{user}, altın sayacını kıpırdamaya tenezzül ettirmeyen {amount} altını hazineye bağışladı.",
     "@{user}, bir yerden başlamak lazım diyerek {amount} altını verdi."
   ],
