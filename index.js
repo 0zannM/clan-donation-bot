@@ -39,6 +39,7 @@ const goldMessages = {
   ],
   big: [
     "@{user}, klanın refahı için {amount} altın bağışladı.",
+    "Fazla para beni bozar diyen @{user}, {amount} altınını bağışladı.",
     "@{user}, hiçbir znci yoksulluk içinde olmasın diye {amount} altını hayır kurumuna bağışladı.",
     "Altyapı çalışmalarına fon sağlamak isteyen @{user}, {amount} altın bağışladı.",
     "Bütçeyi zorlayarak {amount} altın bağışlayan @{user}'i tebrik ederiz.",
@@ -114,7 +115,7 @@ async function checkLedger() {
     let template;
     if (entry.gold < 50) template = randomFrom(goldMessages.verysmall);
     else if (entry.gold < 250) template = randomFrom(goldMessages.small);
-    else if (entry.gold < 650) template = randomFrom(goldMessages.medium);
+    else if (entry.gold < 590) template = randomFrom(goldMessages.medium);
     else if (entry.gold < 1000) template = randomFrom(goldMessages.big);
     else template = randomFrom(goldMessages.huge);
 
