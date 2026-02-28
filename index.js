@@ -98,7 +98,7 @@ async function checkLedger() {
 
   // 🔹 lastRunDate’ten sonraki TÜM yeni bağışları al
   const newEntries = res.data
-    .filter(e => e && e.playerUsername && typeof e.gold === "number" && e.creationTime && e.gold >= 10)
+    .filter(e => e && e.playerUsername && typeof e.gold === "number" && e.creationTime && e.gold >= 20)
     .filter(e => new Date(e.creationTime) > lastRunDate);
 
   if (newEntries.length === 0) {
