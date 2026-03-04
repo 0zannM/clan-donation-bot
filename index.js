@@ -44,7 +44,11 @@ const goldMessages = {
     "Altyapı çalışmalarına fon sağlamak isteyen @{user}, {amount} altın bağışladı.",
     "Bütçeyi zorlayarak {amount} altın bağışlayan @{user}'i tebrik ederiz.",
     "@{user}, ekonomi uçsun diye {amount} altın bağışladı.",
-    "@{user}, altın rezervlerini {amount} artırdı."
+    "@{user}, altın rezervlerini {amount} artırdı.",
+    "Cömertliğiyle nam salan @{user}, hazineye {amount} destekte bulundu.",
+    "@{user}, inşaat projelerini hızlandırmak adına {amount} altın bağışladı.",
+    "@{user} ismiyle bilinen bir hayırsever, klan hazinesine {amount} altın bağışladı.",
+    "Evde su kaçağı olduğunu fark eden @{user}, tesisatçıya {amount} ödeme yaptı."
   ],
   huge: [
     "@{user}, klan tarihine geçecek bir bağış yaptı: {amount} altın.",
