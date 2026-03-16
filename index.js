@@ -67,6 +67,9 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 /* 💾 STATE */
 const STATE_FILE = path.join(__dirname, "ledger-state.json");
 
+/* 🤖 Botun kendi player ID'si */
+const BOT_PLAYER_ID = "b9ab817c-1b51-4dd5-8cc9-ddf6af28ef1c";
+
 /* 🤖 Gemini sistem promptu */
 const SYSTEM_PROMPT = `Sen zeñcidirenis klan botusun, adın zncibot. Wolvesville oynayan Türkçe bir klansın. Amacın, senle konuşan oyunculara yardımcı olmak, sorularını cevaplamak. Samimi, eğlenceli ve espirili ol ama kimseye saldırgan olma. Türkçe yaz, günlük dil kullan. 2-3 cümleyi geçme. Mesajın başında kimin yazdığı var, gerekirse ismiyle hitap et.`;
 
@@ -82,8 +85,16 @@ async function askGemini(userMessage, recentMessages = []) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${GEMINI_API_KEY}`;
 
   // Son mesajları username'li formata çevir
+  // !zncibot komutlarını soru olarak, bot yanıtlarını yanıt olarak göster
   const chatContext = recentMessages.length > 0
-    ? "Son klan sohbeti:\n" + recentMessages.map(m => `[${m.username}]: ${m.msg}`).join("\n") + "\n\n"
+    ? "Son klan sohbeti:\n" +
+      recentMessages.map(m => {
+        if (m.username === "zncibot") return `[zncibot yanıtladı]: ${m.msg}`;
+        if (m.msg.trim().toLowerCase().startsWith("!zncibot ")) {
+          return `[${m.username} sordu]: ${m.msg.trim().slice("!zncibot ".length).trim()}`;
+        }
+        return `[${m.username}]: ${m.msg}`;
+      }).join("\n") + "\n\n"
     : "";
 
   const body = {
@@ -233,7 +244,7 @@ async function checkLedger() {
   // Mesajlara username ekle
   const messagesWithUsername = chatMessages.map(m => ({
     ...m,
-    username: usernameCache[m.playerId] || m.playerId?.slice(0, 6) || "?"
+    username: m.playerId === BOT_PLAYER_ID ? "zncibot" : (usernameCache[m.playerId] || m.playerId?.slice(0, 6) || "?")
   }));
 
   const botCommands = messagesWithUsername.filter(m =>
@@ -247,20 +258,44 @@ async function checkLedger() {
     botCommands.sort((a, b) => new Date(a.date) - new Date(b.date));
     console.log(`🤖 ${botCommands.length} adet !zncibot komutu bulundu.`);
 
+    // Tüm chat geçmişini al (yanıtlanmış komutları tespit etmek için)
+    const fullChatRes = await axios.get(
+      `https://api.wolvesville.com/clans/${CLAN_ID}/chat`,
+      { headers: { Authorization: `Bot ${API_TOKEN}` } }
+    );
+    const fullChat = Array.isArray(fullChatRes.data) ? fullChatRes.data : [];
+
     for (const cmd of botCommands) {
       // "!zncibot " prefix'ini at, kalan metni al
       const rawMessage = cmd.msg.trim().slice("!zncibot ".length).trim();
       if (!rawMessage) continue;
+
+      // Komuttan sonra bot yanıt vermiş mi?
+      const botReplyAfterCmd = fullChat.find(
+        m => m.playerId === BOT_PLAYER_ID && new Date(m.date) > new Date(cmd.date)
+      );
+      if (botReplyAfterCmd) {
+        // Bot yanıtından sonra yeni bir !zncibot komutu gelmiş mi?
+        const newCmdAfterReply = fullChat.some(
+          m => m.playerId !== BOT_PLAYER_ID &&
+          m.msg?.trim().toLowerCase().startsWith("!zncibot ") &&
+          new Date(m.date) > new Date(botReplyAfterCmd.date)
+        );
+        if (!newCmdAfterReply) {
+          console.log(`⏭️  Zaten yanıtlandı, atlanıyor: "${rawMessage}"`);
+          continue;
+        }
+      }
 
       // Gemini'ye kimin yazdığını da bildir
       const userMessage = `${cmd.username} diyor ki: ${rawMessage}`;
 
       console.log(`🔍 İşleniyor: "${rawMessage}" (${cmd.username})`);
 
-      // Komuttan önceki son 10 mesajı context olarak al (!zncibot komutları hariç)
+      // Komuttan önceki son 15 mesajı context olarak al
       const contextMessages = messagesWithUsername
-        .filter(m => new Date(m.date) < new Date(cmd.date) && !m.msg.trim().toLowerCase().startsWith("!zncibot"))
-        .slice(-10);
+        .filter(m => new Date(m.date) < new Date(cmd.date))
+        .slice(-15);
 
       try {
         const reply = await askGemini(userMessage, contextMessages);
