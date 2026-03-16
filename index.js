@@ -11,7 +11,7 @@ const goldMessages = {
     "@{user}, bugünkü simit parasını feda edip {amount} altın bağışladı.",
     "@{user}, küçük adımlarla büyük hayallere diyerek {amount} altınını feda etti.",
     "@{user}, mütevazı bir destek olarak {amount} altın bağışladı.",
-    "@{user}, ‘gerekirse soğan ekmek yeriz’ diyerek {amount} altın bağışladı.",
+    "@{user}, 'gerekirse soğan ekmek yeriz' diyerek {amount} altın bağışladı.",
     "@{user}, vergiler azaltılsın diye şikayet ede ede {amount} altın ödeme yaptı.",
     "@{user}, imkânları sınırlı olsa da {amount} altınla katkı sundu.",
     "@{user}, dengeleri sarsacak ölçekteki {amount} kuruşu hazineye bağışladı.",
@@ -62,13 +62,74 @@ const goldMessages = {
 /* 🔐 ENV */
 const API_TOKEN = process.env.API_TOKEN;
 const CLAN_ID = process.env.CLAN_ID;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 /* 💾 STATE */
 const STATE_FILE = path.join(__dirname, "ledger-state.json");
 
+/* 🤖 Gemini sistem promptu */
+const SYSTEM_PROMPT = `Sen "zncibot" adında bir Wolvesville klan botusun. Klanın adı zeñci, Türkçe konuşan bir Wolvesville oyun klanı.
+Kişiliğin: eğlenceli, alaycı, espirili ama klan üyelerine karşı samimi. Cevaplarını kısa tut (1-3 cümle max).
+Her zaman Türkçe yanıt ver. Markdown, emoji seti veya liste kullanma, düz metin yaz.
+Oyun içi sohbet ortamındasın, resmi bir dil kullanma.`;
+
 /* 🎲 Rastgele seçim */
 function randomFrom(array) {
   return array[Math.floor(Math.random() * array.length)];
+}
+
+/* 🤖 Gemini'ye sor */
+async function askGemini(userMessage) {
+  if (!GEMINI_API_KEY) throw new Error("Eksik env: GEMINI_API_KEY");
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${GEMINI_API_KEY}`;
+
+  const body = {
+    system_instruction: {
+      parts: [{ text: SYSTEM_PROMPT }]
+    },
+    contents: [
+      {
+        role: "user",
+        parts: [{ text: userMessage }]
+      }
+    ],
+    generationConfig: {
+      maxOutputTokens: 150,
+      temperature: 0.9
+    }
+  };
+
+  const res = await axios.post(url, body, {
+    headers: { "Content-Type": "application/json" }
+  });
+
+  const text = res.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) throw new Error("Gemini boş yanıt döndü");
+  return text.trim();
+}
+
+/* 💬 Klan sohbetini çek */
+async function fetchChatMessages(since) {
+  const res = await axios.get(
+    `https://api.wolvesville.com/clans/${CLAN_ID}/chat`,
+    { headers: { Authorization: `Bot ${API_TOKEN}` } }
+  );
+
+  if (!Array.isArray(res.data)) return [];
+
+  return res.data.filter(
+    m => m && !m.isSystem && m.msg && m.date && new Date(m.date) > since
+  );
+}
+
+/* 📨 Klan sohbetine mesaj gönder */
+async function sendChatMessage(message) {
+  await axios.post(
+    `https://api.wolvesville.com/clans/${CLAN_ID}/chat`,
+    { message },
+    { headers: { Authorization: `Bot ${API_TOKEN}` } }
+  );
 }
 
 async function checkLedger() {
@@ -78,8 +139,8 @@ async function checkLedger() {
     throw new Error("Eksik env: API_TOKEN veya CLAN_ID");
   }
 
-  // 🔐 Son işlenen bağış zamanı
-  let lastRunDate = new Date("2026-01-18T02:00:00.000Z"); // başlangıç tarihi (istersen değiştir)
+  // 🔐 Son işlenen zaman
+  let lastRunDate = new Date("2026-02-18T02:00:00.000Z");
   if (fs.existsSync(STATE_FILE)) {
     try {
       const data = JSON.parse(fs.readFileSync(STATE_FILE, "utf-8"));
@@ -89,65 +150,93 @@ async function checkLedger() {
     }
   }
 
-  // Ledger verisini çek
-  const res = await axios.get(
+  // ─── 1) LEDGER: Yeni bağışları işle ───────────────────────────────────────
+  const ledgerRes = await axios.get(
     `https://api.wolvesville.com/clans/${CLAN_ID}/ledger`,
     { headers: { Authorization: `Bot ${API_TOKEN}` } }
   );
 
-  if (!Array.isArray(res.data) || res.data.length === 0) {
-    console.log("Ledger boş.");
-    return;
-  }
-
-  // 🔹 lastRunDate’ten sonraki TÜM yeni bağışları al
-  const newEntries = res.data
-    .filter(e => e && e.playerUsername && typeof e.gold === "number" && e.creationTime && e.gold >= 20)
-    .filter(e => new Date(e.creationTime) > lastRunDate);
-
-  if (newEntries.length === 0) {
-    console.log("🔕 Yeni bağış yok.");
-    return;
-  }
-
-  // Eskiden yeniye sırala
-  newEntries.sort((a, b) => new Date(a.creationTime) - new Date(b.creationTime));
-
   let newestDate = lastRunDate;
-  let sentCount = 0;
 
-  for (const entry of newEntries) {
-    let template;
-    if (entry.gold < 50) template = randomFrom(goldMessages.verysmall);
-    else if (entry.gold < 250) template = randomFrom(goldMessages.small);
-    else if (entry.gold < 590) template = randomFrom(goldMessages.medium);
-    else if (entry.gold < 1000) template = randomFrom(goldMessages.big);
-    else template = randomFrom(goldMessages.huge);
+  if (Array.isArray(ledgerRes.data) && ledgerRes.data.length > 0) {
+    const newEntries = ledgerRes.data
+      .filter(e => e && e.playerUsername && typeof e.gold === "number" && e.creationTime && e.gold >= 20)
+      .filter(e => new Date(e.creationTime) > lastRunDate);
 
-    const message = template
-      .replace("{user}", entry.playerUsername)
-      .replace("{amount}", entry.gold);
+    if (newEntries.length === 0) {
+      console.log("🔕 Yeni bağış yok.");
+    } else {
+      newEntries.sort((a, b) => new Date(a.creationTime) - new Date(b.creationTime));
 
-    await axios.post(
-      `https://api.wolvesville.com/clans/${CLAN_ID}/chat`,
-      { message },
-      { headers: { Authorization: `Bot ${API_TOKEN}` } }
-    );
+      let sentCount = 0;
+      for (const entry of newEntries) {
+        let template;
+        if (entry.gold < 50)        template = randomFrom(goldMessages.verysmall);
+        else if (entry.gold < 250)  template = randomFrom(goldMessages.small);
+        else if (entry.gold < 590)  template = randomFrom(goldMessages.medium);
+        else if (entry.gold < 1000) template = randomFrom(goldMessages.big);
+        else                        template = randomFrom(goldMessages.huge);
 
-    console.log("💬 Gönderildi:", message);
-    sentCount++;
+        const message = template
+          .replace("{user}", entry.playerUsername)
+          .replace("{amount}", entry.gold);
 
-    const entryDate = new Date(entry.creationTime);
-    if (!newestDate || entryDate > newestDate) newestDate = entryDate;
+        await sendChatMessage(message);
+        console.log("💬 Bağış mesajı gönderildi:", message);
+        sentCount++;
+
+        const entryDate = new Date(entry.creationTime);
+        if (entryDate > newestDate) newestDate = entryDate;
+      }
+      console.log(`✅ ${sentCount} bağış mesajı gönderildi.`);
+    }
+  } else {
+    console.log("Ledger boş.");
   }
 
-  // 💾 State güncelle (en yeni bağışın zamanı)
+  // ─── 2) CHAT: !zncibot komutlarını işle ───────────────────────────────────
+  console.log("💬 Sohbet kontrol ediliyor...");
+
+  const chatMessages = await fetchChatMessages(lastRunDate);
+  const botCommands = chatMessages.filter(m =>
+    m.msg.trim().toLowerCase().startsWith("!zncibot ")
+  );
+
+  if (botCommands.length === 0) {
+    console.log("🔕 Yeni !zncibot komutu yok.");
+  } else {
+    // Eskiden yeniye sırala
+    botCommands.sort((a, b) => new Date(a.date) - new Date(b.date));
+    console.log(`🤖 ${botCommands.length} adet !zncibot komutu bulundu.`);
+
+    for (const cmd of botCommands) {
+      // "!zncibot " prefix'ini at, kalan metni al
+      const userMessage = cmd.msg.trim().slice("!zncibot ".length).trim();
+      if (!userMessage) continue;
+
+      console.log(`🔍 İşleniyor: "${userMessage}"`);
+
+      try {
+        const reply = await askGemini(userMessage);
+        await sendChatMessage(reply);
+        console.log("🤖 Gemini yanıtı gönderildi:", reply);
+      } catch (err) {
+        console.error("❌ Gemini hatası:", err.message);
+      }
+
+      // Mesaj tarihini newestDate ile karşılaştır
+      const cmdDate = new Date(cmd.date);
+      if (cmdDate > newestDate) newestDate = cmdDate;
+    }
+  }
+
+  // ─── 3) STATE güncelle ────────────────────────────────────────────────────
   try {
     fs.writeFileSync(
       STATE_FILE,
       JSON.stringify({ lastRunDate: newestDate.toISOString() }, null, 2)
     );
-    console.log(`✅ State güncellendi: ${newestDate.toISOString()} | Mesaj sayısı: ${sentCount}`);
+    console.log(`✅ State güncellendi: ${newestDate.toISOString()}`);
   } catch (err) {
     console.error("❌ State dosyası yazılamadı:", err.message);
   }
