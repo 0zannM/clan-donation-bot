@@ -78,10 +78,15 @@ function randomFrom(array) {
 }
 
 /* 🤖 Gemini'ye sor */
-async function askGemini(userMessage) {
+async function askGemini(userMessage, recentMessages = []) {
   if (!GEMINI_API_KEY) throw new Error("Eksik env: GEMINI_API_KEY");
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${GEMINI_API_KEY}`;
+
+  // Son mesajları okunabilir formata çevir
+  const chatContext = recentMessages.length > 0
+    ? "Son klan sohbeti:\n" + recentMessages.map(m => `[${m.playerId.slice(0, 6)}]: ${m.msg}`).join("\n") + "\n\n"
+    : "";
 
   const body = {
     system_instruction: {
@@ -90,7 +95,7 @@ async function askGemini(userMessage) {
     contents: [
       {
         role: "user",
-        parts: [{ text: userMessage }]
+        parts: [{ text: chatContext + userMessage }]
       }
     ],
     generationConfig: {
@@ -215,8 +220,13 @@ async function checkLedger() {
 
       console.log(`🔍 İşleniyor: "${userMessage}"`);
 
+      // Komuttan önceki son 10 mesajı context olarak al (botun kendi mesajları hariç)
+      const contextMessages = chatMessages
+        .filter(m => new Date(m.date) < new Date(cmd.date) && !m.isSystem)
+        .slice(-10);
+
       try {
-        const reply = await askGemini(userMessage);
+        const reply = await askGemini(userMessage, contextMessages);
         await sendChatMessage(reply);
         console.log("🤖 Gemini yanıtı gönderildi:", reply);
       } catch (err) {
