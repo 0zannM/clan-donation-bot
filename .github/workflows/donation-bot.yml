@@ -32,6 +32,7 @@ jobs:
         env:
           API_TOKEN: ${{ secrets.API_TOKEN }}
           CLAN_ID: ${{ secrets.CLAN_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: node index.js
 
       - name: Commit & push ledger state if changed
