@@ -79,7 +79,7 @@ function randomFrom(array) {
 async function askGemini(userMessage, recentMessages = []) {
   if (!GEMINI_API_KEY) throw new Error("Eksik env: GEMINI_API_KEY");
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${GEMINI_API_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${GEMINI_API_KEY}`;
 
   // Son mesajları username'li formata çevir
   const chatContext = recentMessages.length > 0
