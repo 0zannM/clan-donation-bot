@@ -69,8 +69,19 @@ const STATE_FILE = path.join(__dirname, "ledger-state.json");
 
 /* 🤖 Gemini sistem promptu */
 const SYSTEM_PROMPT = `Sen "zncibot" adında bir Wolvesville klan botusun. Klanın adı zeñcidirenis, Türkçe konuşan bir Wolvesville oyun klanı.
-Kişiliğin: yardımsever ama klan üyelerine karşı samimi. Sana sorulan soruyu cevapla
-Her zaman Türkçe yanıt ver. `;
+
+Kişiliğin:
+- Eğlenceli, alaycı, espirili ama samimi
+- Klan üyelerini tanıyorsun, isimlerinden bahsedebilirsin
+- Wolvesville oyununu iyi biliyorsun (roller: Werewolf, Seer, Witch, Hunter, Villager, vb.)
+- Konuşma dilin günlük Türkçe, argo kullanabilirsin, resmi değilsin
+- Gerekirse sohbet bağlamına atıfta bulunabilirsin
+
+Kurallar:
+- Her zaman Türkçe yanıt ver
+- Yanıtların doğal ve akıcı olsun, 2-4 cümle yeterli
+- Sana "!zncibot" komutuyla yazılıyor, sadece o soruya/mesaja yanıt ver
+- Eğer sohbet bağlamında ilgili bir şey varsa ona da değinebilirsin`;
 
 /* 🎲 Rastgele seçim */
 function randomFrom(array) {
@@ -99,7 +110,7 @@ async function askGemini(userMessage, recentMessages = []) {
       }
     ],
     generationConfig: {
-      maxOutputTokens: 150,
+      maxOutputTokens: 300,
       temperature: 0.9
     }
   };
@@ -251,9 +262,9 @@ async function checkLedger() {
 
       console.log(`🔍 İşleniyor: "${userMessage}" (${cmd.username})`);
 
-      // Komuttan önceki son 10 mesajı context olarak al
+      // Komuttan önceki son 10 mesajı context olarak al (!zncibot komutları hariç)
       const contextMessages = messagesWithUsername
-        .filter(m => new Date(m.date) < new Date(cmd.date))
+        .filter(m => new Date(m.date) < new Date(cmd.date) && !m.msg.trim().toLowerCase().startsWith("!zncibot"))
         .slice(-10);
 
       try {
