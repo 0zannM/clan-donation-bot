@@ -87,10 +87,15 @@ async function askGemini(userMessage, recentMessages = []) {
     : "";
 
   const body = {
-    system_instruction: {
-      parts: [{ text: SYSTEM_PROMPT }]
-    },
     contents: [
+      {
+        role: "user",
+        parts: [{ text: SYSTEM_PROMPT }]
+      },
+      {
+        role: "model",
+        parts: [{ text: "Anladım, zncibot olarak yanıt vereceğim." }]
+      },
       {
         role: "user",
         parts: [{ text: chatContext + userMessage }]
