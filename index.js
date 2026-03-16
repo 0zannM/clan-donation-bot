@@ -264,8 +264,9 @@ async function checkLedger() {
 
       try {
         const reply = await askGemini(userMessage, contextMessages);
+        console.log(`🤖 Gemini tam yanıt (${reply.length} karakter):`, reply);
         await sendChatMessage(reply);
-        console.log("🤖 Gemini yanıtı gönderildi:", reply);
+        console.log("🤖 Gönderildi.");
       } catch (err) {
         console.error("❌ Gemini hatası:", err.message);
       }
