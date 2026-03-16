@@ -69,7 +69,7 @@ const STATE_FILE = path.join(__dirname, "ledger-state.json");
 
 /* 🤖 Gemini sistem promptu */
 const SYSTEM_PROMPT = `Sen "zncibot" adında bir Wolvesville klan botusun. Klanın adı zeñcidirenis, Türkçe konuşan bir Wolvesville oyun klanı.
-Kişiliğin: yardımsever ama klan üyelerine karşı samimi. Cevapların uzun olmasın (en fazla 3 cümle).
+Kişiliğin: yardımsever ama klan üyelerine karşı samimi. Cevapların çok uzun olmasın (en fazla 3 cümle).
 Her zaman Türkçe yanıt ver. `;
 
 /* 🎲 Rastgele seçim */
@@ -83,9 +83,9 @@ async function askGemini(userMessage, recentMessages = []) {
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${GEMINI_API_KEY}`;
 
-  // Son mesajları okunabilir formata çevir
+  // Son mesajları username'li formata çevir
   const chatContext = recentMessages.length > 0
-    ? "Son klan sohbeti:\n" + recentMessages.map(m => `[${m.playerId.slice(0, 6)}]: ${m.msg}`).join("\n") + "\n\n"
+    ? "Son klan sohbeti:\n" + recentMessages.map(m => `[${m.username}]: ${m.msg}`).join("\n") + "\n\n"
     : "";
 
   const body = {
@@ -125,6 +125,26 @@ async function fetchChatMessages(since) {
   return res.data.filter(
     m => m && !m.isSystem && m.msg && m.date && new Date(m.date) > since
   );
+}
+
+/* 👤 Player ID → Username önbelleği (aynı çalışmada tekrar istek atmasın) */
+const usernameCache = {};
+
+async function fetchUsername(playerId) {
+  if (usernameCache[playerId]) return usernameCache[playerId];
+  try {
+    const res = await axios.get(
+      `https://api.wolvesville.com/players/${playerId}`,
+      { headers: { Authorization: `Bot ${API_TOKEN}` } }
+    );
+    const username = res.data?.username || playerId.slice(0, 6);
+    usernameCache[playerId] = username;
+    return username;
+  } catch {
+    // Çekilemezse kısa ID kullan
+    usernameCache[playerId] = playerId.slice(0, 6);
+    return usernameCache[playerId];
+  }
 }
 
 /* 📨 Klan sohbetine mesaj gönder */
@@ -202,7 +222,18 @@ async function checkLedger() {
   console.log("💬 Sohbet kontrol ediliyor...");
 
   const chatMessages = await fetchChatMessages(lastRunDate);
-  const botCommands = chatMessages.filter(m =>
+
+  // Tüm mesajlardaki benzersiz playerId'leri topla ve username'lerini çek
+  const allPlayerIds = [...new Set(chatMessages.map(m => m.playerId).filter(Boolean))];
+  await Promise.all(allPlayerIds.map(id => fetchUsername(id)));
+
+  // Mesajlara username ekle
+  const messagesWithUsername = chatMessages.map(m => ({
+    ...m,
+    username: usernameCache[m.playerId] || m.playerId?.slice(0, 6) || "?"
+  }));
+
+  const botCommands = messagesWithUsername.filter(m =>
     m.msg.trim().toLowerCase().startsWith("!zncibot ")
   );
 
@@ -218,11 +249,11 @@ async function checkLedger() {
       const userMessage = cmd.msg.trim().slice("!zncibot ".length).trim();
       if (!userMessage) continue;
 
-      console.log(`🔍 İşleniyor: "${userMessage}"`);
+      console.log(`🔍 İşleniyor: "${userMessage}" (${cmd.username})`);
 
-      // Komuttan önceki son 10 mesajı context olarak al (botun kendi mesajları hariç)
-      const contextMessages = chatMessages
-        .filter(m => new Date(m.date) < new Date(cmd.date) && !m.isSystem)
+      // Komuttan önceki son 10 mesajı context olarak al
+      const contextMessages = messagesWithUsername
+        .filter(m => new Date(m.date) < new Date(cmd.date))
         .slice(-10);
 
       try {
