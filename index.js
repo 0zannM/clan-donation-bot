@@ -294,7 +294,7 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
             }
           },
           {
-            text: "Bu avatar görselini eğlenceli ve samimi bir şekilde yorumla. Renk, kıyafet, aksesuar gibi detaylardan bahset."
+            text: "Bir klan olarak bu avatar görselini kısa bir şekilde betimleyerek yorumla. Eğer skin siyahi değilse inceleme, klanda sadece siyahi skinlerin kullanıldığını söyle ve bu skin ne alaka diye belirt"
           }
         ]
       });
