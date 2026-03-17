@@ -71,7 +71,7 @@ const STATE_FILE = path.join(__dirname, "ledger-state.json");
 const BOT_PLAYER_ID = "b9ab817c-1b51-4dd5-8cc9-ddf6af28ef1c";
 
 /* 🤖 Gemini sistem promptu */
-const SYSTEM_PROMPT = `Sen zeñcidirenis klan botusun, adın zncibot. Wolvesville oynayan Türkçe bir klansın. Amacın, senle konuşan oyunculara yardımcı olmak, sorularını cevaplamak. Samimi, eğlenceli ve espirili ol ama kimseye saldırgan olma. Türkçe yaz, günlük dil kullan. 2-3 cümleyi geçme. Mesajın başında kimin yazdığı var, gerekirse ismiyle hitap et. İstatistik gerektiren sorularda get_member_stats fonksiyonunu kullan.`;
+const SYSTEM_PROMPT = `Sen zeñcidirenis klan botusun, adın zncibot. Wolvesville oynayan Türkçe bir klansın. Klanın sahibi RoseScammer. Amacın, senle konuşan oyunculara yardımcı olmak, sorularını cevaplamak. Samimi, eğlenceli ve espirili ol ama kimseye saldırgan olma. Türkçe yaz, günlük dil kullan. 2-3 cümleyi geçme. Mesajın başında kimin yazdığı var, gerekirse ismiyle hitap et. İstatistik gerektiren sorularda get_member_stats fonksiyonunu kullan.`;
 
 /* 📊 Function calling tanımları */
 const TOOLS = [
@@ -133,7 +133,7 @@ async function fetchMemberStats() {
   return Array.isArray(res.data) ? res.data : [];
 }
 
-/* 🎨 Avatar görselini base64 olarak çek */
+/* 🎨 Avatar URL'ini çek */
 async function fetchAvatarImage(playerId, slot) {
   // 1. sharedAvatarId al
   const slotRes = await axios.get(
@@ -151,10 +151,7 @@ async function fetchAvatarImage(playerId, slot) {
   const avatarUrl = avatarRes.data?.avatar?.url;
   if (!avatarUrl) throw new Error("Avatar URL alınamadı");
 
-  // 3. Görseli indir ve base64'e çevir
-  const imgRes = await axios.get(avatarUrl, { responseType: "arraybuffer" });
-  const base64 = Buffer.from(imgRes.data).toString("base64");
-  return { base64, mimeType: "image/png" };
+  return { url: avatarUrl };
 }
 
 /* 📊 Function call sonucunu işle */
@@ -269,7 +266,7 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
     contents.push(candidate.content);
 
     // get_avatar ise önce functionResponse gönder, sonra görseli ayrı mesajda gönder
-    if (name === "get_avatar" && fnResult.success && fnResult.image) {
+    if (name === "get_avatar" && fnResult.success && fnResult.image?.url) {
       contents.push({
         role: "user",
         parts: [{
@@ -279,7 +276,7 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
           }
         }]
       });
-      // Görseli ayrı user mesajı olarak gönder
+      // Görseli ayrı user mesajı olarak gönder (URL ile, base64 değil)
       contents.push({
         role: "model",
         parts: [{ text: "Avatar görselini aldım, yorumluyorum." }]
@@ -288,9 +285,9 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
         role: "user",
         parts: [
           {
-            inlineData: {
-              mimeType: fnResult.image.mimeType,
-              data: fnResult.image.base64
+            fileData: {
+              mimeType: "image/png",
+              fileUri: fnResult.image.url
             }
           },
           {
