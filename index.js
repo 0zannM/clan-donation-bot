@@ -270,7 +270,7 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
         parts: [
           { functionResponse: { name, response: { success: true } } },
           { fileData: { mimeType: "image/png", fileUri: fnResult.avatarUrl } },
-          { text: "Bu Wolvesville avatar görselini yorumla. Eğer skin siyahi değil ise klanın temasına uygun olmadığını belirt ve yorumlama ve 'bu skin ne alaka' gibi yorum yap eğlenceli bir şekilde" }
+          { text: "Bu Wolvesville avatar görselini kısaca yorumla. Eğer skin siyahi değil ise klanın temasına uygun olmadığını belirt ve yorumlama ve 'bu skin ne alaka' gibi yorum yap eğlenceli bir şekilde" }
         ]
       });
     } else {
