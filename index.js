@@ -235,8 +235,7 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
 
   const apiConfig = {
     tools: TOOLS,
-    generationConfig: { maxOutputTokens: 300, temperature: 0.9 },
-    thinkingConfig: { thinkingBudget: 0 }
+    generationConfig: { maxOutputTokens: 300, temperature: 0.9 }
   };
 
   let res = await axios.post(url, { contents, ...apiConfig }, {
@@ -256,13 +255,17 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
     contents.push({ role: "model", parts: [{ functionCall: { name, args } }] });
 
     if (name === "get_avatar" && fnResult.success && fnResult.base64) {
-      // Avatar: functionResponse + görsel aynı parts içinde
+      // functionResponse ayrı mesaj
+      contents.push({
+        role: "user",
+        parts: [{ functionResponse: { name, response: { success: true } } }]
+      });
+      // Görsel + yorum isteği ayrı mesaj
       contents.push({
         role: "user",
         parts: [
-          { functionResponse: { name, response: { success: true } } },
           { inlineData: { mimeType: "image/png", data: fnResult.base64 } },
-          { text: "Bu Wolvesville avatar görselini kısaca yorumla. Eğer skin siyahi değil ise klanın temasına uygun olmadığını belirt ve yorumlama ve 'bu skin ne alaka' gibi yorum yap eğlenceli bir şekilde" }
+          { text: "Bu Wolvesville avatar görselini kısaca yorumla. Eğer skin siyahi değil ise klanın temasına uygun olmadığını belirt ve yorumlama, 'bu skin ne alaka' gibi eğlenceli bir yorum yap." }
         ]
       });
     } else {
