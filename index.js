@@ -262,24 +262,15 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
     const fnResult = await handleFunctionCall(name, args, senderPlayerId);
     console.log(`📊 Sonuç:`, JSON.stringify(fnResult).slice(0, 200));
 
-    // Kritik: candidate.content olduğu gibi push et (thought_signature dahil)
-    contents.push(candidate.content);
+    contents.push({ role: "model", parts: [{ functionCall: { name, args } }] });
 
     if (name === "get_avatar" && fnResult.success && fnResult.avatarUrl) {
-      // functionResponse + görsel + yorum isteği ayrı mesaj olarak
-      contents.push({
-        role: "user",
-        parts: [{ functionResponse: { name, response: { success: true } } }]
-      });
-      contents.push({
-        role: "model",
-        parts: [{ text: "Görseli aldım." }]
-      });
       contents.push({
         role: "user",
         parts: [
+          { functionResponse: { name, response: { success: true } } },
           { fileData: { mimeType: "image/png", fileUri: fnResult.avatarUrl } },
-          { text: "Bu Wolvesville avatar görselini yorumla. Eğer skin siyahi değil ise klanın temasına uygun olmadığını belirt ve yorumlama ve 'bu skin ne alaka' gibi yorum yapıp şaşır" }
+          { text: "Bu Wolvesville avatar görselini yorumla. Eğer skin siyahi değil ise klanın temasına uygun olmadığını belirt ve yorumlama ve 'bu skin ne alaka' gibi yorum yap eğlenceli bir şekilde" }
         ]
       });
     } else {
