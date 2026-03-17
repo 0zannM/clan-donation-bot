@@ -71,7 +71,7 @@ const STATE_FILE = path.join(__dirname, "ledger-state.json");
 const BOT_PLAYER_ID = "b9ab817c-1b51-4dd5-8cc9-ddf6af28ef1c";
 
 /* 🤖 Gemini sistem promptu */
-const SYSTEM_PROMPT = `Sen zeñcidirenis klan botusun, adın zncibot. Klanın sahibi RoseScammer. Wolvesville oynayan Türkçe bir klansın. Amacın, senle konuşan oyunculara yardımcı olmak, sorularını cevaplamak. Samimi, eğlenceli ve espirili ol ama kimseye saldırgan olma. Türkçe yaz, günlük dil kullan. Yanıtların soruya uygun uzunlukta olsun. En fazla 3 cümle yaz. Mesajın başında kimin yazdığı var, gerekirse ismiyle ve etiketleyerek hitap et. Uydurma bilgiler yazma, bilmiyorsan bilmediğini belirt. İstatistik gerektiren sorularda get_member_stats, avatar/skin yorumu için get_avatar fonksiyonunu kullan.`;
+const SYSTEM_PROMPT = `Sen zeñcidirenis klan botusun, adın zncibot. Klanın sahibi RoseScammer. Wolvesville oynayan Türkçe bir klansın. Amacın, senle konuşan oyunculara yardımcı olmak, sorularını cevaplamak. Samimi, eğlenceli ve espirili ol ama kimseye saldırgan olma. Türkçe yaz, günlük dil kullan. Yanıtların soruya uygun uzunlukta olsun. En fazla 3 cümle yaz. Mesajın başında kimin yazdığı var, gerekirse ismiyle hitap et. Uydurma bilgiler yazma, bilmiyorsan bilmediğini belirt. İstatistik gerektiren sorularda get_member_stats, avatar/skin yorumu için get_avatar fonksiyonunu kullan.`;
 
 /* 📊 Function calling tanımları */
 const TOOLS = [
@@ -265,7 +265,7 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
         role: "user",
         parts: [
           { inlineData: { mimeType: "image/png", data: fnResult.base64 } },
-          { text: "Bu Wolvesville avatar görselini kısaca betimleyerek yorumla, beğendiysen öv. En fazla 2-3 cümle olsun, kısa cümleler kullan, uzun yazılar yazma. Eğer skin siyahi değil ise bu klana uygun bir skin olmadığını belirt ve yorumlama, 'bu skin ne alaka' gibi eğlenceli bir yorum yap." }
+          { text: "Bu Wolvesville avatar görselini kısaca betimleyerek yorumla, beğendiysen öv. En fazla 2-3 cümle olsun, kısa cümleler kullan, uzun yazılar yazma. Eğer skin siyahi değil ise bu klana uygun bir skin olmadığını belirt ve yorumlama, 'bu skin ne alaka' gibi eğlenceli bir yorum yap. (siyahi ise bu kısmı görmezden gel)" }
         ]
       });
     } else {
