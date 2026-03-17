@@ -252,7 +252,8 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
     const fnResult = await handleFunctionCall(name, args, senderPlayerId);
     console.log(`📊 Sonuç:`, JSON.stringify(fnResult).slice(0, 200));
 
-    contents.push({ role: "model", parts: [{ functionCall: { name, args } }] });
+    // candidate.content'i olduğu gibi push et (thought_signature dahil)
+    contents.push(candidate.content);
 
     if (name === "get_avatar" && fnResult.success && fnResult.base64) {
       // functionResponse ayrı mesaj
