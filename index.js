@@ -268,17 +268,25 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
     // Kritik: candidate.content'i olduğu gibi push et (thought_signature dahil)
     contents.push(candidate.content);
 
-    // get_avatar ise görseli inline olarak Gemini'ye gönder
+    // get_avatar ise önce functionResponse gönder, sonra görseli ayrı mesajda gönder
     if (name === "get_avatar" && fnResult.success && fnResult.image) {
       contents.push({
         role: "user",
+        parts: [{
+          functionResponse: {
+            name,
+            response: { success: true }
+          }
+        }]
+      });
+      // Görseli ayrı user mesajı olarak gönder
+      contents.push({
+        role: "model",
+        parts: [{ text: "Avatar görselini aldım, yorumluyorum." }]
+      });
+      contents.push({
+        role: "user",
         parts: [
-          {
-            functionResponse: {
-              name,
-              response: { success: true }
-            }
-          },
           {
             inlineData: {
               mimeType: fnResult.image.mimeType,
@@ -286,7 +294,7 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
             }
           },
           {
-            text: "Bu oyuncunun avatar görselini eğlenceli ve samimi bir şekilde yorumla."
+            text: "Bu avatar görselini eğlenceli ve samimi bir şekilde yorumla. Renk, kıyafet, aksesuar gibi detaylardan bahset."
           }
         ]
       });
