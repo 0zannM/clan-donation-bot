@@ -71,21 +71,115 @@ const STATE_FILE = path.join(__dirname, "ledger-state.json");
 const BOT_PLAYER_ID = "b9ab817c-1b51-4dd5-8cc9-ddf6af28ef1c";
 
 /* 🤖 Gemini sistem promptu */
-const SYSTEM_PROMPT = `Sen zeñcidirenis klan botusun, adın zncibot. Wolvesville'deki bir klandaki Türkçe bir klan botusun. Amacın, senle konuşan oyunculara yardımcı olmak, sorularını cevaplamak. Samimi, eğlenceli ve espirili ol ama kimseye saldırgan olma. Türkçe yaz, günlük dil kullan. 2-3 cümleyi geçme. Mesajın başında kimin yazdığı var, gerekirse ismiyle hitap et. @isim formatında`;
+const SYSTEM_PROMPT = `Sen zeñcidirenis klan botusun, adın zncibot. Wolvesville oynayan Türkçe bir klansın. Amacın, senle konuşan oyunculara yardımcı olmak, sorularını cevaplamak. Samimi, eğlenceli ve espirili ol ama kimseye saldırgan olma. Türkçe yaz, günlük dil kullan. 2-3 cümleyi geçme. Mesajın başında kimin yazdığı var, gerekirse ismiyle hitap et. İstatistik gerektiren sorularda get_member_stats fonksiyonunu kullan.`;
+
+/* 📊 Function calling tanımları */
+const TOOLS = [
+  {
+    functionDeclarations: [
+      {
+        name: "get_member_stats",
+        description: "Klan üyelerinin XP ve altın bağış istatistiklerini getirir. Belirli bir üyenin veya tüm üyelerin istatistiklerini döndürür.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            username: {
+              type: "STRING",
+              description: "Belirli bir üyenin kullanıcı adı. Boş bırakılırsa tüm üyelerin verisi döner."
+            },
+            metric: {
+              type: "STRING",
+              enum: ["xp", "gold", "gems", "all"],
+              description: "Hangi metrik isteniyor: xp, gold, gems veya all (hepsi)"
+            },
+            period: {
+              type: "STRING",
+              enum: ["week", "month", "year", "allTime"],
+              description: "Zaman dilimi: week, month, year veya allTime"
+            }
+          },
+          required: ["metric", "period"]
+        }
+      }
+    ]
+  }
+];
 
 /* 🎲 Rastgele seçim */
 function randomFrom(array) {
   return array[Math.floor(Math.random() * array.length)];
 }
 
-/* 🤖 Gemini'ye sor */
+/* 📊 Klan üye istatistiklerini çek */
+async function fetchMemberStats() {
+  const res = await axios.get(
+    `https://api.wolvesville.com/clans/${CLAN_ID}/members/detailed`,
+    { headers: { Authorization: `Bot ${API_TOKEN}` } }
+  );
+  return Array.isArray(res.data) ? res.data : [];
+}
+
+/* 📊 Function call sonucunu işle */
+async function handleFunctionCall(name, args) {
+  if (name === "get_member_stats") {
+    const members = await fetchMemberStats();
+    const { username, metric, period } = args;
+
+    // Belirli üye filtresi
+    const filtered = username
+      ? members.filter(m => m.username?.toLowerCase() === username.toLowerCase())
+      : members;
+
+    if (filtered.length === 0) {
+      return { error: `"${username}" adında bir üye bulunamadı.` };
+    }
+
+    const result = filtered.map(m => {
+      const entry = { username: m.username, level: m.level };
+
+      if (metric === "xp" || metric === "all") {
+        entry.xp = {
+          week: m.xpDurations?.week ?? 0,
+          month: m.xpDurations?.month ?? 0
+        };
+        if (metric === "xp") {
+          // Sadece istenen period'u döndür
+          entry.xp = { [period]: m.xpDurations?.[period] ?? m.xpDurations?.week ?? 0 };
+        }
+      }
+
+      if (metric === "gold" || metric === "all") {
+        entry.gold = { [period]: m.donated?.gold?.[period] ?? 0 };
+      }
+
+      if (metric === "gems" || metric === "all") {
+        entry.gems = { [period]: m.donated?.gems?.[period] ?? 0 };
+      }
+
+      return entry;
+    });
+
+    // Sıralama: tek metrik istendiyse büyükten küçüğe sırala
+    if (metric !== "all" && !username) {
+      result.sort((a, b) => {
+        const valA = metric === "xp" ? (a.xp?.[period] ?? 0) : (a[metric]?.[period] ?? 0);
+        const valB = metric === "xp" ? (b.xp?.[period] ?? 0) : (b[metric]?.[period] ?? 0);
+        return valB - valA;
+      });
+    }
+
+    return { members: result, total: result.length };
+  }
+
+  return { error: "Bilinmeyen fonksiyon." };
+}
+
+/* 🤖 Gemini'ye sor (function calling destekli) */
 async function askGemini(userMessage, recentMessages = []) {
   if (!GEMINI_API_KEY) throw new Error("Eksik env: GEMINI_API_KEY");
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${GEMINI_API_KEY}`;
 
-  // Son mesajları username'li formata çevir
-  // !zncibot komutlarını soru olarak, bot yanıtlarını yanıt olarak göster
   const chatContext = recentMessages.length > 0
     ? "Son klan sohbeti:\n" +
       recentMessages.map(m => {
@@ -97,32 +191,53 @@ async function askGemini(userMessage, recentMessages = []) {
       }).join("\n") + "\n\n"
     : "";
 
+  // İlk istek
+  const contents = [
+    { role: "user", parts: [{ text: SYSTEM_PROMPT }] },
+    { role: "model", parts: [{ text: "Anladım, zncibot olarak yanıt vereceğim." }] },
+    { role: "user", parts: [{ text: chatContext + userMessage }] }
+  ];
+
   const body = {
-    contents: [
-      {
-        role: "user",
-        parts: [{ text: SYSTEM_PROMPT }]
-      },
-      {
-        role: "model",
-        parts: [{ text: "Anladım, zncibot olarak yanıt vereceğim." }]
-      },
-      {
-        role: "user",
-        parts: [{ text: chatContext + userMessage }]
-      }
-    ],
-    generationConfig: {
-      maxOutputTokens: 300,
-      temperature: 0.9
-    }
+    contents,
+    tools: TOOLS,
+    generationConfig: { maxOutputTokens: 300, temperature: 0.9 }
   };
 
-  const res = await axios.post(url, body, {
+  let res = await axios.post(url, body, {
     headers: { "Content-Type": "application/json" }
   });
 
-  const text = res.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  const candidate = res.data?.candidates?.[0];
+
+  // Function call istedi mi?
+  const functionCallPart = candidate?.content?.parts?.find(p => p.functionCall);
+
+  if (functionCallPart) {
+    const { name, args } = functionCallPart.functionCall;
+    console.log(`🔧 Function call: ${name}`, args);
+
+    const fnResult = await handleFunctionCall(name, args);
+    console.log(`📊 Sonuç:`, JSON.stringify(fnResult).slice(0, 200));
+
+    // Sonucu Gemini'ye geri gönder
+    contents.push({ role: "model", parts: [{ functionCall: { name, args } }] });
+    contents.push({
+      role: "user",
+      parts: [{
+        functionResponse: {
+          name,
+          response: { content: JSON.stringify(fnResult) }
+        }
+      }]
+    });
+
+    res = await axios.post(url, { contents, tools: TOOLS, generationConfig: { maxOutputTokens: 300, temperature: 0.9 } }, {
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+
+  const text = res.data?.candidates?.[0]?.content?.parts?.find(p => p.text)?.text;
   if (!text) throw new Error("Gemini boş yanıt döndü");
   return text.trim();
 }
@@ -141,7 +256,7 @@ async function fetchChatMessages(since) {
   );
 }
 
-/* 👤 Player ID → Username önbelleği (aynı çalışmada tekrar istek atmasın) */
+/* 👤 Player ID → Username önbelleği */
 const usernameCache = {};
 
 async function fetchUsername(playerId) {
@@ -155,7 +270,6 @@ async function fetchUsername(playerId) {
     usernameCache[playerId] = username;
     return username;
   } catch {
-    // Çekilemezse kısa ID kullan
     usernameCache[playerId] = playerId.slice(0, 6);
     return usernameCache[playerId];
   }
@@ -183,12 +297,10 @@ async function checkLedger() {
     try {
       const data = JSON.parse(fs.readFileSync(STATE_FILE, "utf-8"));
       if (data.lastRunDate) lastRunDate = new Date(data.lastRunDate);
-    } catch {
-      // okunamazsa başlangıç tarihi kullanılacak
-    }
+    } catch {}
   }
 
-  // ─── 1) LEDGER: Yeni bağışları işle ───────────────────────────────────────
+  // ─── 1) LEDGER ───────────────────────────────────────────────────────────
   const ledgerRes = await axios.get(
     `https://api.wolvesville.com/clans/${CLAN_ID}/ledger`,
     { headers: { Authorization: `Bot ${API_TOKEN}` } }
@@ -205,8 +317,8 @@ async function checkLedger() {
       console.log("🔕 Yeni bağış yok.");
     } else {
       newEntries.sort((a, b) => new Date(a.creationTime) - new Date(b.creationTime));
-
       let sentCount = 0;
+
       for (const entry of newEntries) {
         let template;
         if (entry.gold < 50)        template = randomFrom(goldMessages.verysmall);
@@ -232,16 +344,14 @@ async function checkLedger() {
     console.log("Ledger boş.");
   }
 
-  // ─── 2) CHAT: !zncibot komutlarını işle ───────────────────────────────────
+  // ─── 2) CHAT ─────────────────────────────────────────────────────────────
   console.log("💬 Sohbet kontrol ediliyor...");
 
   const chatMessages = await fetchChatMessages(lastRunDate);
 
-  // Tüm mesajlardaki benzersiz playerId'leri topla ve username'lerini çek
   const allPlayerIds = [...new Set(chatMessages.map(m => m.playerId).filter(Boolean))];
   await Promise.all(allPlayerIds.map(id => fetchUsername(id)));
 
-  // Mesajlara username ekle
   const messagesWithUsername = chatMessages.map(m => ({
     ...m,
     username: m.playerId === BOT_PLAYER_ID ? "zncibot" : (usernameCache[m.playerId] || m.playerId?.slice(0, 6) || "?")
@@ -254,11 +364,9 @@ async function checkLedger() {
   if (botCommands.length === 0) {
     console.log("🔕 Yeni !zncibot komutu yok.");
   } else {
-    // Eskiden yeniye sırala
     botCommands.sort((a, b) => new Date(a.date) - new Date(b.date));
     console.log(`🤖 ${botCommands.length} adet !zncibot komutu bulundu.`);
 
-    // Tüm chat geçmişini al (yanıtlanmış komutları tespit etmek için)
     const fullChatRes = await axios.get(
       `https://api.wolvesville.com/clans/${CLAN_ID}/chat`,
       { headers: { Authorization: `Bot ${API_TOKEN}` } }
@@ -266,16 +374,14 @@ async function checkLedger() {
     const fullChat = Array.isArray(fullChatRes.data) ? fullChatRes.data : [];
 
     for (const cmd of botCommands) {
-      // "!zncibot " prefix'ini at, kalan metni al
       const rawMessage = cmd.msg.trim().slice("!zncibot ".length).trim();
       if (!rawMessage) continue;
 
-      // Komuttan sonra bot yanıt vermiş mi?
+      // Zaten yanıtlandı mı?
       const botReplyAfterCmd = fullChat.find(
         m => m.playerId === BOT_PLAYER_ID && new Date(m.date) > new Date(cmd.date)
       );
       if (botReplyAfterCmd) {
-        // Bot yanıtından sonra yeni bir !zncibot komutu gelmiş mi?
         const newCmdAfterReply = fullChat.some(
           m => m.playerId !== BOT_PLAYER_ID &&
           m.msg?.trim().toLowerCase().startsWith("!zncibot ") &&
@@ -287,32 +393,28 @@ async function checkLedger() {
         }
       }
 
-      // Gemini'ye kimin yazdığını da bildir
       const userMessage = `${cmd.username} diyor ki: ${rawMessage}`;
-
       console.log(`🔍 İşleniyor: "${rawMessage}" (${cmd.username})`);
 
-      // Komuttan önceki son 15 mesajı context olarak al
       const contextMessages = messagesWithUsername
         .filter(m => new Date(m.date) < new Date(cmd.date))
         .slice(-15);
 
       try {
         const reply = await askGemini(userMessage, contextMessages);
-        console.log(`🤖 Gemini tam yanıt (${reply.length} karakter):`, reply);
+        console.log(`🤖 Gemini yanıtı (${reply.length} karakter):`, reply);
         await sendChatMessage(reply);
         console.log("🤖 Gönderildi.");
       } catch (err) {
         console.error("❌ Gemini hatası:", err.message);
       }
 
-      // Mesaj tarihini newestDate ile karşılaştır
       const cmdDate = new Date(cmd.date);
       if (cmdDate > newestDate) newestDate = cmdDate;
     }
   }
 
-  // ─── 3) STATE güncelle ────────────────────────────────────────────────────
+  // ─── 3) STATE ─────────────────────────────────────────────────────────────
   try {
     fs.writeFileSync(
       STATE_FILE,
