@@ -191,7 +191,6 @@ async function askGemini(userMessage, recentMessages = []) {
       }).join("\n") + "\n\n"
     : "";
 
-  // İlk istek
   const contents = [
     { role: "user", parts: [{ text: SYSTEM_PROMPT }] },
     { role: "model", parts: [{ text: "Anladım, zncibot olarak yanıt vereceğim." }] },
@@ -200,17 +199,14 @@ async function askGemini(userMessage, recentMessages = []) {
 
   const apiConfig = {
     tools: TOOLS,
-    generationConfig: { maxOutputTokens: 300, temperature: 0.9 },
-    thinkingConfig: { thinkingBudget: 0 }
+    generationConfig: { maxOutputTokens: 300, temperature: 0.9 }
   };
 
   let res = await axios.post(url, { contents, ...apiConfig }, {
     headers: { "Content-Type": "application/json" }
   });
 
-  const candidate = res.data?.candidates?.[0];
-
-  // Function call istedi mi?
+  let candidate = res.data?.candidates?.[0];
   const functionCallPart = candidate?.content?.parts?.find(p => p.functionCall);
 
   if (functionCallPart) {
@@ -220,8 +216,8 @@ async function askGemini(userMessage, recentMessages = []) {
     const fnResult = await handleFunctionCall(name, args);
     console.log(`📊 Sonuç:`, JSON.stringify(fnResult).slice(0, 200));
 
-    // Sonucu Gemini'ye geri gönder
-    contents.push({ role: "model", parts: [{ functionCall: { name, args } }] });
+    // Kritik: candidate.content'i olduğu gibi push et (thought_signature dahil)
+    contents.push(candidate.content);
     contents.push({
       role: "user",
       parts: [{
@@ -235,9 +231,10 @@ async function askGemini(userMessage, recentMessages = []) {
     res = await axios.post(url, { contents, ...apiConfig }, {
       headers: { "Content-Type": "application/json" }
     });
+    candidate = res.data?.candidates?.[0];
   }
 
-  const text = res.data?.candidates?.[0]?.content?.parts?.find(p => p.text)?.text;
+  const text = candidate?.content?.parts?.find(p => p.text)?.text;
   if (!text) throw new Error("Gemini boş yanıt döndü");
   return text.trim();
 }
