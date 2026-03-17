@@ -406,7 +406,7 @@ async function checkLedger() {
         await sendChatMessage(reply);
         console.log("🤖 Gönderildi.");
       } catch (err) {
-        console.error("❌ Gemini hatası:", err.message);
+        console.error("❌ Gemini hatası:", JSON.stringify(err.response?.data, null, 2));
       }
 
       const cmdDate = new Date(cmd.date);
