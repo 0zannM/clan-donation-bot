@@ -158,7 +158,7 @@ async function handleFunctionCall(name, args, senderPlayerId = null) {
   if (name === "get_avatar") {
     if (!senderPlayerId) return { error: "Oyuncu ID bulunamadı." };
     try {
-      const base64 = await fetchAvatarBase64(senderPlayerId, args.slot);
+      const base64 = await fetchAvatarBase64(senderPlayerId, args.slot - 1);
       return { success: true, base64 };
     } catch (err) {
       return { error: err.message };
@@ -265,7 +265,7 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
         role: "user",
         parts: [
           { inlineData: { mimeType: "image/png", data: fnResult.base64 } },
-          { text: "Bu Wolvesville avatar görselini kısaca yorumla. Eğer skin siyahi değil ise klanın temasına uygun olmadığını belirt ve yorumlama, 'bu skin ne alaka' gibi eğlenceli bir yorum yap." }
+          { text: "Bu Wolvesville avatar görselini kısaca yorumla. Eğer skin siyahi değil ise bu klana uygun bir skin olmadığını belirt ve yorumlama, 'bu skin ne alaka' gibi eğlenceli bir yorum yap." }
         ]
       });
     } else {
