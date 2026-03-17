@@ -100,6 +100,20 @@ const TOOLS = [
           },
           required: ["metric", "period"]
         }
+      },
+      {
+        name: "get_avatar",
+        description: "Komutu yazan oyuncunun belirttiği slot numarasındaki avatar görselini getirir ve yorumlar.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            slot: {
+              type: "NUMBER",
+              description: "Avatar slot numarası (örn. 1, 2, 3)"
+            }
+          },
+          required: ["slot"]
+        }
       }
     ]
   }
@@ -119,8 +133,43 @@ async function fetchMemberStats() {
   return Array.isArray(res.data) ? res.data : [];
 }
 
+/* 🎨 Avatar görselini base64 olarak çek */
+async function fetchAvatarImage(playerId, slot) {
+  // 1. sharedAvatarId al
+  const slotRes = await axios.get(
+    `https://api.wolvesville.com/avatars/sharedAvatarId/${playerId}/${slot}`,
+    { headers: { Authorization: `Bot ${API_TOKEN}` } }
+  );
+  const sharedAvatarId = slotRes.data?.sharedAvatarId;
+  if (!sharedAvatarId) throw new Error("sharedAvatarId alınamadı");
+
+  // 2. Avatar URL'ini al
+  const avatarRes = await axios.get(
+    `https://api.wolvesville.com/avatars/${sharedAvatarId}`,
+    { headers: { Authorization: `Bot ${API_TOKEN}` } }
+  );
+  const avatarUrl = avatarRes.data?.avatar?.url;
+  if (!avatarUrl) throw new Error("Avatar URL alınamadı");
+
+  // 3. Görseli indir ve base64'e çevir
+  const imgRes = await axios.get(avatarUrl, { responseType: "arraybuffer" });
+  const base64 = Buffer.from(imgRes.data).toString("base64");
+  return { base64, mimeType: "image/png" };
+}
+
 /* 📊 Function call sonucunu işle */
-async function handleFunctionCall(name, args) {
+async function handleFunctionCall(name, args, senderPlayerId = null) {
+  if (name === "get_avatar") {
+    if (!senderPlayerId) return { error: "Oyuncu ID'si bulunamadı." };
+    const { slot } = args;
+    try {
+      const image = await fetchAvatarImage(senderPlayerId, slot);
+      return { success: true, image };
+    } catch (err) {
+      return { error: err.message };
+    }
+  }
+
   if (name === "get_member_stats") {
     const members = await fetchMemberStats();
     const { username, metric, period } = args;
@@ -175,7 +224,7 @@ async function handleFunctionCall(name, args) {
 }
 
 /* 🤖 Gemini'ye sor (function calling destekli) */
-async function askGemini(userMessage, recentMessages = []) {
+async function askGemini(userMessage, recentMessages = [], senderPlayerId = null) {
   if (!GEMINI_API_KEY) throw new Error("Eksik env: GEMINI_API_KEY");
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${GEMINI_API_KEY}`;
@@ -213,20 +262,45 @@ async function askGemini(userMessage, recentMessages = []) {
     const { name, args } = functionCallPart.functionCall;
     console.log(`🔧 Function call: ${name}`, args);
 
-    const fnResult = await handleFunctionCall(name, args);
+    const fnResult = await handleFunctionCall(name, args, senderPlayerId);
     console.log(`📊 Sonuç:`, JSON.stringify(fnResult).slice(0, 200));
 
     // Kritik: candidate.content'i olduğu gibi push et (thought_signature dahil)
     contents.push(candidate.content);
-    contents.push({
-      role: "user",
-      parts: [{
-        functionResponse: {
-          name,
-          response: fnResult
-        }
-      }]
-    });
+
+    // get_avatar ise görseli inline olarak Gemini'ye gönder
+    if (name === "get_avatar" && fnResult.success && fnResult.image) {
+      contents.push({
+        role: "user",
+        parts: [
+          {
+            functionResponse: {
+              name,
+              response: { success: true }
+            }
+          },
+          {
+            inlineData: {
+              mimeType: fnResult.image.mimeType,
+              data: fnResult.image.base64
+            }
+          },
+          {
+            text: "Bu oyuncunun avatar görselini eğlenceli ve samimi bir şekilde yorumla."
+          }
+        ]
+      });
+    } else {
+      contents.push({
+        role: "user",
+        parts: [{
+          functionResponse: {
+            name,
+            response: fnResult
+          }
+        }]
+      });
+    }
 
     res = await axios.post(url, { contents, ...apiConfig }, {
       headers: { "Content-Type": "application/json" }
@@ -398,7 +472,7 @@ async function checkLedger() {
         .slice(-15);
 
       try {
-        const reply = await askGemini(userMessage, contextMessages);
+        const reply = await askGemini(userMessage, contextMessages, cmd.playerId);
         console.log(`🤖 Gemini yanıtı (${reply.length} karakter):`, reply);
         await sendChatMessage(reply);
         console.log("🤖 Gönderildi.");
