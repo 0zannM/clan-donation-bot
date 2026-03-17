@@ -198,13 +198,13 @@ async function askGemini(userMessage, recentMessages = []) {
     { role: "user", parts: [{ text: chatContext + userMessage }] }
   ];
 
-  const body = {
-    contents,
+  const apiConfig = {
     tools: TOOLS,
-    generationConfig: { maxOutputTokens: 300, temperature: 0.9 }
+    generationConfig: { maxOutputTokens: 300, temperature: 0.9 },
+    thinkingConfig: { thinkingBudget: 0 }
   };
 
-  let res = await axios.post(url, body, {
+  let res = await axios.post(url, { contents, ...apiConfig }, {
     headers: { "Content-Type": "application/json" }
   });
 
@@ -232,7 +232,7 @@ async function askGemini(userMessage, recentMessages = []) {
       }]
     });
 
-    res = await axios.post(url, { contents, tools: TOOLS, generationConfig: { maxOutputTokens: 300, temperature: 0.9 } }, {
+    res = await axios.post(url, { contents, ...apiConfig }, {
       headers: { "Content-Type": "application/json" }
     });
   }
@@ -406,7 +406,7 @@ async function checkLedger() {
         await sendChatMessage(reply);
         console.log("🤖 Gönderildi.");
       } catch (err) {
-        console.error("❌ Gemini hatası:", JSON.stringify(err.response?.data, null, 2));
+        console.error("❌ Gemini hatası:", err.message);
       }
 
       const cmdDate = new Date(cmd.date);
