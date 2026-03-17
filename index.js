@@ -133,8 +133,8 @@ async function fetchMemberStats() {
   return Array.isArray(res.data) ? res.data : [];
 }
 
-/* 🎨 Avatar URL'ini çek (base64 değil, direkt URL) */
-async function fetchAvatarUrl(playerId, slot) {
+/* 🎨 Avatar görselini base64 olarak çek */
+async function fetchAvatarBase64(playerId, slot) {
   const slotRes = await axios.get(
     `https://api.wolvesville.com/avatars/sharedAvatarId/${playerId}/${slot}`,
     { headers: { Authorization: `Bot ${API_TOKEN}` } }
@@ -148,7 +148,9 @@ async function fetchAvatarUrl(playerId, slot) {
   );
   const url = avatarRes.data?.avatar?.url;
   if (!url) throw new Error("Avatar URL alınamadı");
-  return url;
+
+  const imgRes = await axios.get(url, { responseType: "arraybuffer" });
+  return Buffer.from(imgRes.data).toString("base64");
 }
 
 /* 📊 Function call sonucunu işle */
@@ -156,8 +158,8 @@ async function handleFunctionCall(name, args, senderPlayerId = null) {
   if (name === "get_avatar") {
     if (!senderPlayerId) return { error: "Oyuncu ID bulunamadı." };
     try {
-      const url = await fetchAvatarUrl(senderPlayerId, args.slot);
-      return { success: true, avatarUrl: url };
+      const base64 = await fetchAvatarBase64(senderPlayerId, args.slot);
+      return { success: true, base64 };
     } catch (err) {
       return { error: err.message };
     }
@@ -167,7 +169,6 @@ async function handleFunctionCall(name, args, senderPlayerId = null) {
     const members = await fetchMemberStats();
     const { username, metric, period } = args;
 
-    // Belirli üye filtresi
     const filtered = username
       ? members.filter(m => m.username?.toLowerCase() === username.toLowerCase())
       : members;
@@ -180,20 +181,14 @@ async function handleFunctionCall(name, args, senderPlayerId = null) {
       const entry = { username: m.username, level: m.level };
 
       if (metric === "xp" || metric === "all") {
-        entry.xp = {
-          week: m.xpDurations?.week ?? 0,
-          month: m.xpDurations?.month ?? 0
-        };
+        entry.xp = { week: m.xpDurations?.week ?? 0, month: m.xpDurations?.month ?? 0 };
         if (metric === "xp") {
-          // Sadece istenen period'u döndür
           entry.xp = { [period]: m.xpDurations?.[period] ?? m.xpDurations?.week ?? 0 };
         }
       }
-
       if (metric === "gold" || metric === "all") {
         entry.gold = { [period]: m.donated?.gold?.[period] ?? 0 };
       }
-
       if (metric === "gems" || metric === "all") {
         entry.gems = { [period]: m.donated?.gems?.[period] ?? 0 };
       }
@@ -201,7 +196,6 @@ async function handleFunctionCall(name, args, senderPlayerId = null) {
       return entry;
     });
 
-    // Sıralama: tek metrik istendiyse büyükten küçüğe sırala
     if (metric !== "all" && !username) {
       result.sort((a, b) => {
         const valA = metric === "xp" ? (a.xp?.[period] ?? 0) : (a[metric]?.[period] ?? 0);
@@ -233,7 +227,6 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
       }).join("\n") + "\n\n"
     : "";
 
-  // İlk istek
   const contents = [
     { role: "user", parts: [{ text: SYSTEM_PROMPT }] },
     { role: "model", parts: [{ text: "Anladım, zncibot olarak yanıt vereceğim." }] },
@@ -251,8 +244,6 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
   });
 
   const candidate = res.data?.candidates?.[0];
-
-  // Function call istedi mi?
   const functionCallPart = candidate?.content?.parts?.find(p => p.functionCall);
 
   if (functionCallPart) {
@@ -264,12 +255,13 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
 
     contents.push({ role: "model", parts: [{ functionCall: { name, args } }] });
 
-    if (name === "get_avatar" && fnResult.success && fnResult.avatarUrl) {
+    if (name === "get_avatar" && fnResult.success && fnResult.base64) {
+      // Avatar: functionResponse + görsel aynı parts içinde
       contents.push({
         role: "user",
         parts: [
           { functionResponse: { name, response: { success: true } } },
-          { fileData: { mimeType: "image/png", fileUri: fnResult.avatarUrl } },
+          { inlineData: { mimeType: "image/png", data: fnResult.base64 } },
           { text: "Bu Wolvesville avatar görselini kısaca yorumla. Eğer skin siyahi değil ise klanın temasına uygun olmadığını belirt ve yorumlama ve 'bu skin ne alaka' gibi yorum yap eğlenceli bir şekilde" }
         ]
       });
@@ -454,7 +446,7 @@ async function checkLedger() {
         await sendChatMessage(reply);
         console.log("🤖 Gönderildi.");
       } catch (err) {
-        console.error("❌ Gemini hatası:", err.message);
+        console.error("❌ Gemini hatası:", JSON.stringify(err.response?.data) || err.message);
       }
 
       const cmdDate = new Date(cmd.date);
