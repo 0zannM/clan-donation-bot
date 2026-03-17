@@ -71,7 +71,7 @@ const STATE_FILE = path.join(__dirname, "ledger-state.json");
 const BOT_PLAYER_ID = "b9ab817c-1b51-4dd5-8cc9-ddf6af28ef1c";
 
 /* 🤖 Gemini sistem promptu */
-const SYSTEM_PROMPT = `Sen zeñcidirenis klan botusun, adın zncibot. Wolvesville oynayan Türkçe bir klansın. Amacın, senle konuşan oyunculara yardımcı olmak, sorularını cevaplamak. Samimi, eğlenceli ve espirili ol ama kimseye saldırgan olma. Türkçe yaz, günlük dil kullan. 2-3 cümleyi geçme. Mesajın başında kimin yazdığı var, gerekirse ismiyle hitap et. İstatistik gerektiren sorularda get_member_stats fonksiyonunu kullan.`;
+const SYSTEM_PROMPT = `Sen zeñcidirenis klan botusun, adın zncibot. Klanın sahibi RoseScammer. Wolvesville oynayan Türkçe bir klansın. Amacın, senle konuşan oyunculara yardımcı olmak, sorularını cevaplamak. Samimi, eğlenceli ve espirili ol ama kimseye saldırgan olma. Türkçe yaz, günlük dil kullan. 2-3 cümleyi geçme. Mesajın başında kimin yazdığı var, gerekirse ismiyle hitap et. İstatistik gerektiren sorularda get_member_stats, avatar/skin yorumu için get_avatar fonksiyonunu kullan.`;
 
 /* 📊 Function calling tanımları */
 const TOOLS = [
@@ -100,6 +100,20 @@ const TOOLS = [
           },
           required: ["metric", "period"]
         }
+      },
+      {
+        name: "get_avatar",
+        description: "Komutu yazan oyuncunun belirttiği slot numarasındaki avatar/skin görselini getirir ve yorumlar.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            slot: {
+              type: "NUMBER",
+              description: "Avatar slot numarası (örn. 1, 2, 3)"
+            }
+          },
+          required: ["slot"]
+        }
       }
     ]
   }
@@ -119,8 +133,36 @@ async function fetchMemberStats() {
   return Array.isArray(res.data) ? res.data : [];
 }
 
+/* 🎨 Avatar URL'ini çek (base64 değil, direkt URL) */
+async function fetchAvatarUrl(playerId, slot) {
+  const slotRes = await axios.get(
+    `https://api.wolvesville.com/avatars/sharedAvatarId/${playerId}/${slot}`,
+    { headers: { Authorization: `Bot ${API_TOKEN}` } }
+  );
+  const sharedAvatarId = slotRes.data?.sharedAvatarId;
+  if (!sharedAvatarId) throw new Error("sharedAvatarId alınamadı");
+
+  const avatarRes = await axios.get(
+    `https://api.wolvesville.com/avatars/${sharedAvatarId}`,
+    { headers: { Authorization: `Bot ${API_TOKEN}` } }
+  );
+  const url = avatarRes.data?.avatar?.url;
+  if (!url) throw new Error("Avatar URL alınamadı");
+  return url;
+}
+
 /* 📊 Function call sonucunu işle */
-async function handleFunctionCall(name, args) {
+async function handleFunctionCall(name, args, senderPlayerId = null) {
+  if (name === "get_avatar") {
+    if (!senderPlayerId) return { error: "Oyuncu ID bulunamadı." };
+    try {
+      const url = await fetchAvatarUrl(senderPlayerId, args.slot);
+      return { success: true, avatarUrl: url };
+    } catch (err) {
+      return { error: err.message };
+    }
+  }
+
   if (name === "get_member_stats") {
     const members = await fetchMemberStats();
     const { username, metric, period } = args;
@@ -175,7 +217,7 @@ async function handleFunctionCall(name, args) {
 }
 
 /* 🤖 Gemini'ye sor (function calling destekli) */
-async function askGemini(userMessage, recentMessages = []) {
+async function askGemini(userMessage, recentMessages = [], senderPlayerId = null) {
   if (!GEMINI_API_KEY) throw new Error("Eksik env: GEMINI_API_KEY");
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${GEMINI_API_KEY}`;
@@ -217,20 +259,35 @@ async function askGemini(userMessage, recentMessages = []) {
     const { name, args } = functionCallPart.functionCall;
     console.log(`🔧 Function call: ${name}`, args);
 
-    const fnResult = await handleFunctionCall(name, args);
+    const fnResult = await handleFunctionCall(name, args, senderPlayerId);
     console.log(`📊 Sonuç:`, JSON.stringify(fnResult).slice(0, 200));
 
-    // Sonucu Gemini'ye geri gönder
-    contents.push({ role: "model", parts: [{ functionCall: { name, args } }] });
-    contents.push({
-      role: "user",
-      parts: [{
-        functionResponse: {
-          name,
-          response: fnResult
-        }
-      }]
-    });
+    // Kritik: candidate.content olduğu gibi push et (thought_signature dahil)
+    contents.push(candidate.content);
+
+    if (name === "get_avatar" && fnResult.success && fnResult.avatarUrl) {
+      // functionResponse + görsel + yorum isteği ayrı mesaj olarak
+      contents.push({
+        role: "user",
+        parts: [{ functionResponse: { name, response: { success: true } } }]
+      });
+      contents.push({
+        role: "model",
+        parts: [{ text: "Görseli aldım." }]
+      });
+      contents.push({
+        role: "user",
+        parts: [
+          { fileData: { mimeType: "image/png", fileUri: fnResult.avatarUrl } },
+          { text: "Bu Wolvesville avatar görselini yorumla. Eğer skin siyahi değil ise klanın temasına uygun olmadığını belirt ve yorumlama ve 'bu skin ne alaka' gibi yorum yapıp şaşır" }
+        ]
+      });
+    } else {
+      contents.push({
+        role: "user",
+        parts: [{ functionResponse: { name, response: fnResult } }]
+      });
+    }
 
     res = await axios.post(url, { contents, ...apiConfig }, {
       headers: { "Content-Type": "application/json" }
@@ -401,7 +458,7 @@ async function checkLedger() {
         .slice(-15);
 
       try {
-        const reply = await askGemini(userMessage, contextMessages);
+        const reply = await askGemini(userMessage, contextMessages, cmd.playerId);
         console.log(`🤖 Gemini yanıtı (${reply.length} karakter):`, reply);
         await sendChatMessage(reply);
         console.log("🤖 Gönderildi.");
