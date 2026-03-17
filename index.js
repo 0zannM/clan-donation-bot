@@ -223,11 +223,11 @@ async function askGemini(userMessage, recentMessages = []) {
     // Sonucu Gemini'ye geri gönder
     contents.push({ role: "model", parts: [{ functionCall: { name, args } }] });
     contents.push({
-      role: "user",
+      role: "function",
       parts: [{
         functionResponse: {
           name,
-          response: { content: JSON.stringify(fnResult) }
+          response: fnResult
         }
       }]
     });
