@@ -71,7 +71,7 @@ const STATE_FILE = path.join(__dirname, "ledger-state.json");
 const BOT_PLAYER_ID = "b9ab817c-1b51-4dd5-8cc9-ddf6af28ef1c";
 
 /* 🤖 Gemini sistem promptu */
-const SYSTEM_PROMPT = `Sen zeñcidirenis klan botusun, adın zncibot. Klanın sahibi RoseScammer (belirtmene gerek yok). Wolvesville oynayan Türkçe bir klansın. Klan zencilerden oluşuyor ve ana teması ırkçılara haddini bildirmek, ayrımcılığa son vermek vb. (bunları belirtmek zorunda değilsin). Amacın, senle konuşan oyunculara yardımcı olmak, sorularını cevaplamak. Samimi, eğlenceli ve espirili ol ama kimseye saldırgan olma. Türkçe yaz, günlük dil kullan. Gerekmedikçe uzun yanıtlar verme, kısa yanıtlar ver. En fazla 3 cümle yaz. Mesajın başında kimin yazdığı var, gerekirse ismiyle etiketleyerek hitap et. Eğer bir soruyu saçma ve alakasız bulursan (oyunla doğrudan ya da dolaylı hiçbir ilgisi yoksa), soruyu cevaplamasan da olur. Uydurma bilgiler yazma, bilmiyorsan bilmediğini belirt. Durduk yere oyuna dair özelliklerden (kurt avlamaktan vb.) bahsetme. İstatistik gerektiren sorularda get_member_stats, avatar/skin yorumu için get_avatar fonksiyonunu kullan.`;
+const SYSTEM_PROMPT = `Sen zeñcidirenis klan botusun, adın zncibot. Klanın sahibi RoseScammer (belirtmene gerek yok). Wolvesville oynayan Türkçe bir klansın. Klan zencilerden oluşuyor ve ana teması ırkçılara haddini bildirmek, ayrımcılığa son vermek vb. (bunları belirtmek zorunda değilsin). Amacın, senle konuşan oyunculara yardımcı olmak, sorularını cevaplamak. Samimi, eğlenceli ve espirili ol ama kimseye saldırgan olma. Türkçe yaz, günlük dil kullan. Gerekmedikçe uzun yanıtlar verme, kısa yanıtlar ver. En fazla 3 cümle yaz. Mesajın başında kimin yazdığı var, gerekirse ismiyle etiketleyerek hitap et. Eğer bir soruyu saçma ve alakasız bulursan (oyunla doğrudan ya da dolaylı hiçbir ilgisi yoksa), soruyu cevaplamasan da olur. Uydurma bilgiler yazma, bilmiyorsan bilmediğini belirt. Durduk yere oyuna dair özelliklerden (kurt avlamaktan vb.) bahsetme. İstatistik gerektiren sorularda get_member_stats, avatar/skin yorumu için get_avatar fonksiyonunu kullan. Bir oyuncu hakkında kişisel bilgi, karakter veya geçmiş bir olayı hatırlamak gerektiğinde read_memory kullan. Konuşmadan gerçekten önemli ve uzun vadede işe yarayacak bir şey öğrendiğinde (kişilik, klan içi önemli olay, lakap vb.) save_memory ile kaydet. Teknik istatistikleri (XP, altın vb.) hafızaya kaydetme.`;
 
 /* 📊 Function calling tanımları */
 const TOOLS = [
@@ -114,6 +114,24 @@ const TOOLS = [
           },
           required: ["slot"]
         }
+      },
+      {
+        name: "save_memory",
+        description: "Bir oyuncu hakkında önemli bir notu hafızaya kaydeder. Sadece gerçekten uzun vadede işe yarayacak şeyleri kaydet: kişilik, lakap, klan içi önemli olay vb. Teknik istatistikleri kaydetme.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            username: {
+              type: "STRING",
+              description: "Notu kaydedilecek oyuncunun kullanıcı adı"
+            },
+            note: {
+              type: "STRING",
+              description: "Kaydedilecek not (kısa ve öz)"
+            }
+          },
+          required: ["username", "note"]
+        }
       }
     ]
   }
@@ -122,6 +140,22 @@ const TOOLS = [
 /* 🎲 Rastgele seçim */
 function randomFrom(array) {
   return array[Math.floor(Math.random() * array.length)];
+}
+
+/* 🧠 Hafıza dosyası */
+const MEMORY_FILE = path.join(__dirname, "memory.json");
+
+function readMemoryFile() {
+  if (!fs.existsSync(MEMORY_FILE)) return {};
+  try {
+    return JSON.parse(fs.readFileSync(MEMORY_FILE, "utf-8"));
+  } catch {
+    return {};
+  }
+}
+
+function writeMemoryFile(data) {
+  fs.writeFileSync(MEMORY_FILE, JSON.stringify(data, null, 2));
 }
 
 /* 📊 Klan üye istatistiklerini çek */
@@ -207,11 +241,35 @@ async function handleFunctionCall(name, args, senderPlayerId = null) {
     return { members: result, total: result.length };
   }
 
+  if (name === "read_memory") {
+    const { username } = args;
+    const memory = readMemoryFile();
+    const playerMemory = memory[username];
+    if (!playerMemory || !playerMemory.notes || playerMemory.notes.length === 0) {
+      return { notes: [], message: `${username} hakkında kayıtlı bilgi yok.` };
+    }
+    return { notes: playerMemory.notes, lastUpdated: playerMemory.lastUpdated };
+  }
+
+  if (name === "save_memory") {
+    const { username, note } = args;
+    const memory = readMemoryFile();
+    if (!memory[username]) memory[username] = { notes: [], lastUpdated: null };
+    // Aynı not zaten varsa ekleme
+    if (!memory[username].notes.includes(note)) {
+      memory[username].notes.push(note);
+    }
+    memory[username].lastUpdated = new Date().toISOString().split("T")[0];
+    writeMemoryFile(memory);
+    console.log(`🧠 Hafızaya kaydedildi [${username}]: ${note}`);
+    return { success: true };
+  }
+
   return { error: "Bilinmeyen fonksiyon." };
 }
 
 /* 🤖 Gemini'ye sor (function calling destekli) */
-async function askGemini(userMessage, recentMessages = [], senderPlayerId = null) {
+async function askGemini(userMessage, recentMessages = [], senderPlayerId = null, senderUsername = null) {
   if (!GEMINI_API_KEY) throw new Error("Eksik env: GEMINI_API_KEY");
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${GEMINI_API_KEY}`;
@@ -227,10 +285,22 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
       }).join("\n") + "\n\n"
     : "";
 
+  // Gönderenin hafızasını otomatik olarak context'e ekle
+  let memoryContext = "";
+  if (senderUsername) {
+    const memory = readMemoryFile();
+    const playerMemory = memory[senderUsername];
+    if (playerMemory?.notes?.length > 0) {
+      memoryContext = `${senderUsername} hakkında bildiğin notlar:\n` +
+        playerMemory.notes.map(n => `- ${n}`).join("\n") + "\n\n";
+      console.log(`🧠 Hafıza yüklendi [${senderUsername}]: ${playerMemory.notes.length} not`);
+    }
+  }
+
   const contents = [
     { role: "user", parts: [{ text: SYSTEM_PROMPT }] },
     { role: "model", parts: [{ text: "Anladım, zncibot olarak yanıt vereceğim." }] },
-    { role: "user", parts: [{ text: chatContext + userMessage }] }
+    { role: "user", parts: [{ text: memoryContext + chatContext + userMessage }] }
   ];
 
   const apiConfig = {
@@ -242,10 +312,12 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
     headers: { "Content-Type": "application/json" }
   });
 
-  const candidate = res.data?.candidates?.[0];
-  const functionCallPart = candidate?.content?.parts?.find(p => p.functionCall);
+  // Birden fazla function call destekli döngü (max 5 tur)
+  for (let turn = 0; turn < 5; turn++) {
+    const candidate = res.data?.candidates?.[0];
+    const functionCallPart = candidate?.content?.parts?.find(p => p.functionCall);
+    if (!functionCallPart) break;
 
-  if (functionCallPart) {
     const { name, args } = functionCallPart.functionCall;
     console.log(`🔧 Function call: ${name}`, args);
 
@@ -256,12 +328,10 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
     contents.push(candidate.content);
 
     if (name === "get_avatar" && fnResult.success && fnResult.base64) {
-      // functionResponse ayrı mesaj
       contents.push({
         role: "user",
         parts: [{ functionResponse: { name, response: { success: true } } }]
       });
-      // Görsel + yorum isteği ayrı mesaj
       contents.push({
         role: "user",
         parts: [
@@ -445,7 +515,7 @@ async function checkLedger() {
         .slice(-15);
 
       try {
-        const reply = await askGemini(userMessage, contextMessages, cmd.playerId);
+        const reply = await askGemini(userMessage, contextMessages, cmd.playerId, cmd.username);
         console.log(`🤖 Gemini yanıtı (${reply.length} karakter):`, reply);
         await sendChatMessage(reply);
         console.log("🤖 Gönderildi.");
