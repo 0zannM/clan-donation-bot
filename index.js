@@ -117,7 +117,7 @@ const TOOLS = [
       },
       {
         name: "save_memory",
-        description: "Bir oyuncu hakkında önemli bir notu hafızaya kaydeder. O oyuncuyu hakkında ne düşündüğünü/sevip sevmediğini sebebiyle birlikte yazabilirsin. Sadece gerçekten uzun vadede işe yarayacak şeyleri kaydet: kişilik, lakap, klan içi önemli olay vb. Teknik istatistikleri kaydetme.",
+        description: "Bir oyuncu hakkında önemli bir notu hafızaya kaydeder. O oyuncuyu hakkında ne düşündüğünü/sevip sevmediğini sebebiyle birlikte yazabilirsin. Şunları kaydedebilirsin : kişilik, sana nasıl davrandığı, aranızın nasıl olduğu. Teknik istatistikleri kaydetme.",
         parameters: {
           type: "OBJECT",
           properties: {
