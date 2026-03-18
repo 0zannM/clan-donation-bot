@@ -132,7 +132,7 @@ const TOOLS = [
           },
           required: ["username", "note"]
         }
-      }
+      },
       {
       name: "read_memory",
       description: "Bir oyuncu hakkında kişisel bilgileri, karakterini veya geçmiş olayları hafızadan okur. Sadece hakkında soru sorulan spesifik oyuncular için kullan.",
