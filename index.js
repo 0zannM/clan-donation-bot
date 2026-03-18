@@ -512,7 +512,7 @@ async function checkLedger() {
 
       const contextMessages = messagesWithUsername
         .filter(m => new Date(m.date) < new Date(cmd.date))
-        .slice(-20);
+        .slice(-30);
 
       try {
         const reply = await askGemini(userMessage, contextMessages, cmd.playerId, cmd.username);
