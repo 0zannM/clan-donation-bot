@@ -115,22 +115,27 @@ const TOOLS = [
           required: ["slot"]
         }
       },
-      {
+{
         name: "save_memory",
-        description: "Bir oyuncu hakkında önemli bir notu hafızaya kaydeder. O oyuncuyu hakkında ne düşündüğünü/sevip sevmediğini sebebiyle birlikte yazabilirsin, fikirlerini güncelleyebilirsin. Şunları kaydedebilirsin : kişilik, sana nasıl davrandığı, aranızın nasıl olduğu. Teknik istatistikleri kaydetme.",
+        description: "Bir oyuncu hakkındaki bilgileri kaydeder, gereksiz/eski bilgileri siler veya günceller. O oyuncu hakkında ne düşündüğünü, kişiliğini, aranızın nasıl olduğunu yönet. Eğer eski bir bilgiyi geçersiz kılmak istiyorsan önce o bilgiyi 'remove' ile sil, sonra yenisini 'add' ile ekle.",
         parameters: {
           type: "OBJECT",
           properties: {
             username: {
               type: "STRING",
-              description: "Notu kaydedilecek oyuncunun kullanıcı adı"
+              description: "İşlem yapılacak oyuncunun kullanıcı adı"
+            },
+            action: {
+              type: "STRING",
+              enum: ["add", "remove", "clear"],
+              description: "Yapılacak işlem: Yeni not için 'add', eski bir notu silmek için 'remove', oyuncunun tüm hafızasını sıfırlamak için 'clear' kullan."
             },
             note: {
               type: "STRING",
-              description: "Kaydedilecek not (kısa ve öz)"
+              description: "Eklenecek veya tam olarak silinecek notun metni (clear işlemi için boş bırakılabilir)"
             }
           },
-          required: ["username", "note"]
+          required: ["username", "action"]
         }
       },
       {
@@ -254,28 +259,32 @@ async function handleFunctionCall(name, args, senderPlayerId = null) {
 
     return { members: result, total: result.length };
   }
-
-  if (name === "read_memory") {
-    const { username } = args;
+if (name === "save_memory") {
+    const { username, note, action } = args;
     const memory = readMemoryFile();
-    const playerMemory = memory[username];
-    if (!playerMemory || !playerMemory.notes || playerMemory.notes.length === 0) {
-      return { notes: [], message: `${username} hakkında kayıtlı bilgi yok.` };
-    }
-    return { notes: playerMemory.notes, lastUpdated: playerMemory.lastUpdated };
-  }
-
-  if (name === "save_memory") {
-    const { username, note } = args;
-    const memory = readMemoryFile();
+    
     if (!memory[username]) memory[username] = { notes: [], lastUpdated: null };
-    // Aynı not zaten varsa ekleme
-    if (!memory[username].notes.includes(note)) {
-      memory[username].notes.push(note);
+
+    if (action === "add" && note) {
+      // Not yoksa ekle
+      if (!memory[username].notes.includes(note)) {
+        memory[username].notes.push(note);
+        console.log(`🧠 Hafızaya eklendi [${username}]: ${note}`);
+      }
+    } 
+    else if (action === "remove" && note) {
+      // Belirtilen notu bul ve diziden çıkar
+      memory[username].notes = memory[username].notes.filter(n => n !== note);
+      console.log(`🗑️ Hafızadan silindi [${username}]: ${note}`);
+    } 
+    else if (action === "clear") {
+      // Tüm notları temizle
+      memory[username].notes = [];
+      console.log(`🧹 Hafıza tamamen temizlendi [${username}]`);
     }
+
     memory[username].lastUpdated = new Date().toISOString().split("T")[0];
     writeMemoryFile(memory);
-    console.log(`🧠 Hafızaya kaydedildi [${username}]: ${note}`);
     return { success: true };
   }
 
