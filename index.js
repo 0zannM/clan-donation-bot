@@ -370,69 +370,78 @@ async function sendChatMessage(message) {
   );
 }
 
-async function checkLedger() {
-  console.log("⏳ Ledger kontrol ediliyor...");
+/* 🕐 Paylaşılan state */
+let lastRunDate = new Date("2026-02-18T02:00:00.000Z");
 
-  if (!API_TOKEN || !CLAN_ID) {
-    throw new Error("Eksik env: API_TOKEN veya CLAN_ID");
-  }
-
-  // 🔐 Son işlenen zaman
-  let lastRunDate = new Date("2026-02-18T02:00:00.000Z");
+function loadState() {
   if (fs.existsSync(STATE_FILE)) {
     try {
       const data = JSON.parse(fs.readFileSync(STATE_FILE, "utf-8"));
       if (data.lastRunDate) lastRunDate = new Date(data.lastRunDate);
     } catch {}
   }
+}
 
-  // ─── 1) LEDGER ───────────────────────────────────────────────────────────
+function saveState() {
+  try {
+    fs.writeFileSync(STATE_FILE, JSON.stringify({ lastRunDate: lastRunDate.toISOString() }, null, 2));
+  } catch (err) {
+    console.error("❌ State dosyası yazılamadı:", err.message);
+  }
+}
+
+/* ─── LEDGER: her 60 saniyede bir ─────────────────────────────────────────── */
+async function checkLedger() {
+  console.log("⏳ Ledger kontrol ediliyor...");
+
   const ledgerRes = await axios.get(
     `https://api.wolvesville.com/clans/${CLAN_ID}/ledger`,
     { headers: { Authorization: `Bot ${API_TOKEN}` } }
   );
 
-  let newestDate = lastRunDate;
-
-  if (Array.isArray(ledgerRes.data) && ledgerRes.data.length > 0) {
-    const newEntries = ledgerRes.data
-      .filter(e => e && e.playerUsername && typeof e.gold === "number" && e.creationTime && e.gold >= 20)
-      .filter(e => new Date(e.creationTime) > lastRunDate);
-
-    if (newEntries.length === 0) {
-      console.log("🔕 Yeni bağış yok.");
-    } else {
-      newEntries.sort((a, b) => new Date(a.creationTime) - new Date(b.creationTime));
-      let sentCount = 0;
-
-      for (const entry of newEntries) {
-        let template;
-        if (entry.gold < 50)        template = randomFrom(goldMessages.verysmall);
-        else if (entry.gold < 250)  template = randomFrom(goldMessages.small);
-        else if (entry.gold < 590)  template = randomFrom(goldMessages.medium);
-        else if (entry.gold < 1000) template = randomFrom(goldMessages.big);
-        else                        template = randomFrom(goldMessages.huge);
-
-        const message = template
-          .replace("{user}", entry.playerUsername)
-          .replace("{amount}", entry.gold);
-
-        await sendChatMessage(message);
-        console.log("💬 Bağış mesajı gönderildi:", message);
-        sentCount++;
-
-        const entryDate = new Date(entry.creationTime);
-        if (entryDate > newestDate) newestDate = entryDate;
-      }
-      console.log(`✅ ${sentCount} bağış mesajı gönderildi.`);
-    }
-  } else {
+  if (!Array.isArray(ledgerRes.data) || ledgerRes.data.length === 0) {
     console.log("Ledger boş.");
+    return;
   }
 
-  // ─── 2) CHAT ─────────────────────────────────────────────────────────────
-  console.log("💬 Sohbet kontrol ediliyor...");
+  const newEntries = ledgerRes.data
+    .filter(e => e && e.playerUsername && typeof e.gold === "number" && e.creationTime && e.gold >= 20)
+    .filter(e => new Date(e.creationTime) > lastRunDate);
 
+  if (newEntries.length === 0) {
+    console.log("🔕 Yeni bağış yok.");
+    return;
+  }
+
+  newEntries.sort((a, b) => new Date(a.creationTime) - new Date(b.creationTime));
+  let sentCount = 0;
+
+  for (const entry of newEntries) {
+    let template;
+    if (entry.gold < 50)        template = randomFrom(goldMessages.verysmall);
+    else if (entry.gold < 250)  template = randomFrom(goldMessages.small);
+    else if (entry.gold < 590)  template = randomFrom(goldMessages.medium);
+    else if (entry.gold < 1000) template = randomFrom(goldMessages.big);
+    else                        template = randomFrom(goldMessages.huge);
+
+    const message = template
+      .replace("{user}", entry.playerUsername)
+      .replace("{amount}", entry.gold);
+
+    await sendChatMessage(message);
+    console.log("💬 Bağış mesajı gönderildi:", message);
+    sentCount++;
+
+    const entryDate = new Date(entry.creationTime);
+    if (entryDate > lastRunDate) lastRunDate = entryDate;
+  }
+
+  console.log(`✅ ${sentCount} bağış mesajı gönderildi.`);
+  saveState();
+}
+
+/* ─── CHAT: her 10 saniyede bir ───────────────────────────────────────────── */
+async function checkChat() {
   const chatMessages = await fetchChatMessages(lastRunDate);
 
   const allPlayerIds = [...new Set(chatMessages.map(m => m.playerId).filter(Boolean))];
@@ -447,78 +456,103 @@ async function checkLedger() {
     m.msg.trim().toLowerCase().startsWith("!zncibot ")
   );
 
-  if (botCommands.length === 0) {
-    console.log("🔕 Yeni !zncibot komutu yok.");
-  } else {
-    botCommands.sort((a, b) => new Date(a.date) - new Date(b.date));
-    console.log(`🤖 ${botCommands.length} adet !zncibot komutu bulundu.`);
+  if (botCommands.length === 0) return;
 
-    const fullChatRes = await axios.get(
-      `https://api.wolvesville.com/clans/${CLAN_ID}/chat`,
-      { headers: { Authorization: `Bot ${API_TOKEN}` } }
+  botCommands.sort((a, b) => new Date(a.date) - new Date(b.date));
+  console.log(`🤖 ${botCommands.length} adet !zncibot komutu bulundu.`);
+
+  const fullChatRes = await axios.get(
+    `https://api.wolvesville.com/clans/${CLAN_ID}/chat`,
+    { headers: { Authorization: `Bot ${API_TOKEN}` } }
+  );
+  const fullChat = Array.isArray(fullChatRes.data) ? fullChatRes.data : [];
+
+  for (const cmd of botCommands) {
+    const rawMessage = cmd.msg.trim().slice("!zncibot ".length).trim();
+    if (!rawMessage) continue;
+
+    // Zaten yanıtlandı mı?
+    const botReplyAfterCmd = fullChat.find(
+      m => m.playerId === BOT_PLAYER_ID && new Date(m.date) > new Date(cmd.date)
     );
-    const fullChat = Array.isArray(fullChatRes.data) ? fullChatRes.data : [];
-
-    for (const cmd of botCommands) {
-      const rawMessage = cmd.msg.trim().slice("!zncibot ".length).trim();
-      if (!rawMessage) continue;
-
-      // Zaten yanıtlandı mı?
-      const botReplyAfterCmd = fullChat.find(
-        m => m.playerId === BOT_PLAYER_ID && new Date(m.date) > new Date(cmd.date)
+    if (botReplyAfterCmd) {
+      const newCmdAfterReply = fullChat.some(
+        m => m.playerId !== BOT_PLAYER_ID &&
+        m.msg?.trim().toLowerCase().startsWith("!zncibot ") &&
+        new Date(m.date) > new Date(botReplyAfterCmd.date)
       );
-      if (botReplyAfterCmd) {
-        const newCmdAfterReply = fullChat.some(
-          m => m.playerId !== BOT_PLAYER_ID &&
-          m.msg?.trim().toLowerCase().startsWith("!zncibot ") &&
-          new Date(m.date) > new Date(botReplyAfterCmd.date)
-        );
-        if (!newCmdAfterReply) {
-          console.log(`⏭️  Zaten yanıtlandı, atlanıyor: "${rawMessage}"`);
-          continue;
-        }
+      if (!newCmdAfterReply) {
+        console.log(`⏭️  Zaten yanıtlandı, atlanıyor: "${rawMessage}"`);
+        // lastRunDate'i ilerlet ki bir sonraki döngüde tekrar görünmesin
+        const cmdDate = new Date(cmd.date);
+        if (cmdDate > lastRunDate) { lastRunDate = cmdDate; saveState(); }
+        continue;
       }
-
-      const userMessage = `${cmd.username} diyor ki: ${rawMessage}`;
-      console.log(`🔍 İşleniyor: "${rawMessage}" (${cmd.username})`);
-
-      // Son 200 mesajı çek, yeni oyuncuların username'lerini de çek
-      const recentRaw = await fetchRecentMessages();
-      const newPlayerIds = [...new Set(recentRaw.map(m => m.playerId).filter(Boolean))]
-        .filter(id => !usernameCache[id]);
-      await Promise.all(newPlayerIds.map(id => fetchUsername(id)));
-      const recentWithUsername = recentRaw.map(m => ({
-        ...m,
-        username: m.playerId === BOT_PLAYER_ID ? "zncibot" : (usernameCache[m.playerId] || m.playerId?.slice(0, 6) || "?")
-      }));
-      const contextMessages = recentWithUsername.filter(m => new Date(m.date) < new Date(cmd.date));
-
-      try {
-        const reply = await askGemini(userMessage, contextMessages, cmd.playerId);
-        console.log(`🤖 Gemini yanıtı (${reply.length} karakter):`, reply);
-        await sendChatMessage(reply);
-        console.log("🤖 Gönderildi.");
-      } catch (err) {
-        console.error("❌ Gemini hatası:", JSON.stringify(err.response?.data) || err.message);
-      }
-
-      const cmdDate = new Date(cmd.date);
-      if (cmdDate > newestDate) newestDate = cmdDate;
     }
-  }
 
-  // ─── 3) STATE ─────────────────────────────────────────────────────────────
-  try {
-    fs.writeFileSync(
-      STATE_FILE,
-      JSON.stringify({ lastRunDate: newestDate.toISOString() }, null, 2)
-    );
-    console.log(`✅ State güncellendi: ${newestDate.toISOString()}`);
-  } catch (err) {
-    console.error("❌ State dosyası yazılamadı:", err.message);
+    const userMessage = `${cmd.username} diyor ki: ${rawMessage}`;
+    console.log(`🔍 İşleniyor: "${rawMessage}" (${cmd.username})`);
+
+    const recentRaw = await fetchRecentMessages();
+    const newPlayerIds = [...new Set(recentRaw.map(m => m.playerId).filter(Boolean))]
+      .filter(id => !usernameCache[id]);
+    await Promise.all(newPlayerIds.map(id => fetchUsername(id)));
+    const recentWithUsername = recentRaw.map(m => ({
+      ...m,
+      username: m.playerId === BOT_PLAYER_ID ? "zncibot" : (usernameCache[m.playerId] || m.playerId?.slice(0, 6) || "?")
+    }));
+    const contextMessages = recentWithUsername.filter(m => new Date(m.date) < new Date(cmd.date));
+
+    try {
+      const reply = await askGemini(userMessage, contextMessages, cmd.playerId);
+      console.log(`🤖 Gemini yanıtı (${reply.length} karakter):`, reply);
+      await sendChatMessage(reply);
+      console.log("🤖 Gönderildi.");
+    } catch (err) {
+      console.error("❌ Gemini hatası:", JSON.stringify(err.response?.data) || err.message);
+    }
+
+    const cmdDate = new Date(cmd.date);
+    if (cmdDate > lastRunDate) { lastRunDate = cmdDate; saveState(); }
   }
 }
 
-checkLedger().catch(err => {
-  console.error("❌ HATA:", err.response?.status, err.response?.data || err.message);
+/* 🔁 Ana döngü */
+async function main() {
+  if (!API_TOKEN || !CLAN_ID) throw new Error("Eksik env: API_TOKEN veya CLAN_ID");
+
+  const RUN_DURATION_MS = (3 * 60 + 58) * 60 * 1000; // 3 saat 58 dakika
+  const CHAT_INTERVAL_MS = 10 * 1000;                 // 10 saniye
+  const LEDGER_INTERVAL_MS = 60 * 1000;               // 60 saniye
+
+  loadState();
+
+  const startTime = Date.now();
+  let lastLedgerCheck = 0;
+
+  console.log(`🚀 Bot başlatıldı — ${new Date().toISOString()} | Süre: ${RUN_DURATION_MS / 60000} dk`);
+
+  while (Date.now() - startTime < RUN_DURATION_MS) {
+    const now = Date.now();
+
+    try {
+      if (now - lastLedgerCheck >= LEDGER_INTERVAL_MS) {
+        await checkLedger();
+        lastLedgerCheck = Date.now();
+      }
+      await checkChat();
+    } catch (err) {
+      console.error("❌ HATA:", err.response?.status, err.response?.data || err.message);
+    }
+
+    await new Promise(resolve => setTimeout(resolve, CHAT_INTERVAL_MS));
+  }
+
+  console.log("⏹️ Bot süresi doldu, kapatılıyor.");
+  saveState();
+}
+
+main().catch(err => {
+  console.error("❌ FATAL:", err.response?.status, err.response?.data || err.message);
+  process.exit(1);
 });
