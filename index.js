@@ -117,7 +117,7 @@ const TOOLS = [
       },
 {
         name: "save_memory",
-        description: "Bir oyuncu hakkındaki bilgileri kaydeder, gereksiz/eski bilgileri siler veya günceller. O oyuncuyla aranın nasıl olduğunu, kişiliğini, yönet. Eğer eski bir bilgiyi geçersiz kılmak istiyorsan önce o bilgiyi 'remove' ile sil, sonra yenisini 'add' ile ekle.",
+        description: "Bir oyuncu ile aranızın nasıl olduğunu ve ilişki dinamiğinizi kaydeder, gereksiz/eski bilgileri siler veya günceller. O oyuncuyla aranın nasıl olduğunu yönet (örnek:'aramız kötü, kavgalıyız' veya 'samimiyiz ve iyi geçiniyoruz' gibi), . Eğer eski bir bilgiyi geçersiz kılmak istiyorsan önce o bilgiyi 'remove' ile sil, sonra yenisini 'add' ile ekle.",
         parameters: {
           type: "OBJECT",
           properties: {
