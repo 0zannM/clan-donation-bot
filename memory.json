@@ -1,1 +1,14 @@
-
+{
+  "player_data": {
+    "username": "Rakuncan",
+    "personality_traits": [
+      "Hayko ile olan dostluğumuzu kıskanıyor"
+    ],
+    "relationship_summary": "Bana çok iyi davranmadı",
+    "memories": [
+      "Hayko'nun banı ile dalga geçti",
+      "Atılmamı istedi"
+    ],
+    "last_updated": "2026-03-19 12:15"
+  }
+}
