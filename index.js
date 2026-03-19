@@ -208,6 +208,8 @@ async function fetchAvatarBase64(playerId, slot) {
 
 /* 📊 Function call sonucunu işle */
 async function handleFunctionCall(name, args, senderPlayerId = null) {
+  
+  // 1. Avatar Görüntüleme
   if (name === "get_avatar") {
     if (!senderPlayerId) return { error: "Oyuncu ID bulunamadı." };
     try {
@@ -218,6 +220,7 @@ async function handleFunctionCall(name, args, senderPlayerId = null) {
     }
   }
 
+  // 2. Klan İstatistiklerini Getirme
   if (name === "get_member_stats") {
     const members = await fetchMemberStats();
     const { username, metric, period } = args;
@@ -232,12 +235,8 @@ async function handleFunctionCall(name, args, senderPlayerId = null) {
 
     const result = filtered.map(m => {
       const entry = { username: m.username, level: m.level };
-
       if (metric === "xp" || metric === "all") {
-        entry.xp = { week: m.xpDurations?.week ?? 0, month: m.xpDurations?.month ?? 0 };
-        if (metric === "xp") {
-          entry.xp = { [period]: m.xpDurations?.[period] ?? m.xpDurations?.week ?? 0 };
-        }
+        entry.xp = { [period]: m.xpDurations?.[period] ?? m.xpDurations?.week ?? 0 };
       }
       if (metric === "gold" || metric === "all") {
         entry.gold = { [period]: m.donated?.gold?.[period] ?? 0 };
@@ -245,40 +244,30 @@ async function handleFunctionCall(name, args, senderPlayerId = null) {
       if (metric === "gems" || metric === "all") {
         entry.gems = { [period]: m.donated?.gems?.[period] ?? 0 };
       }
-
       return entry;
     });
 
-    if (metric !== "all" && !username) {
-      result.sort((a, b) => {
-        const valA = metric === "xp" ? (a.xp?.[period] ?? 0) : (a[metric]?.[period] ?? 0);
-        const valB = metric === "xp" ? (b.xp?.[period] ?? 0) : (b[metric]?.[period] ?? 0);
-        return valB - valA;
-      });
-    }
-
     return { members: result, total: result.length };
   }
-if (name === "save_memory") {
+
+  // 3. Hafızaya Kaydetme (Ekleme/Silme/Temizleme)
+  if (name === "save_memory") {
     const { username, note, action } = args;
     const memory = readMemoryFile();
     
     if (!memory[username]) memory[username] = { notes: [], lastUpdated: null };
 
     if (action === "add" && note) {
-      // Not yoksa ekle
       if (!memory[username].notes.includes(note)) {
         memory[username].notes.push(note);
         console.log(`🧠 Hafızaya eklendi [${username}]: ${note}`);
       }
     } 
     else if (action === "remove" && note) {
-      // Belirtilen notu bul ve diziden çıkar
       memory[username].notes = memory[username].notes.filter(n => n !== note);
       console.log(`🗑️ Hafızadan silindi [${username}]: ${note}`);
     } 
     else if (action === "clear") {
-      // Tüm notları temizle
       memory[username].notes = [];
       console.log(`🧹 Hafıza tamamen temizlendi [${username}]`);
     }
@@ -288,8 +277,25 @@ if (name === "save_memory") {
     return { success: true };
   }
 
+  // 4. Hafızadan Okuma (Güvenli Mod: Oyuncu yoksa hata vermez)
+  if (name === "read_memory") {
+    const { username } = args;
+    const memory = readMemoryFile();
+    
+    // Eğer oyuncu dosyada yoksa veya notlar dizisi oluşmamışsa boş liste dön
+    if (!memory[username] || !Array.isArray(memory[username].notes)) {
+      console.log(`ℹ️ [read_memory] ${username} için kayıt bulunamadı, boş dönülüyor.`);
+      return { username, notes: [], message: "Bu oyuncu hakkında henüz bir kayıt yok." };
+    }
+
+    console.log(`🧠 [read_memory] ${username} hafızası okundu (${memory[username].notes.length} not).`);
+    return { username, notes: memory[username].notes };
+  }
+
+  // Tanımlanmamış bir fonksiyon çağrılırsa
   return { error: "Bilinmeyen fonksiyon." };
 }
+
 
 /* 🤖 Gemini'ye sor (function calling destekli) */
 async function askGemini(userMessage, recentMessages = [], senderPlayerId = null, senderUsername = null) {
