@@ -286,7 +286,7 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
   return text.trim();
 }
 
-/* 💬 Klan sohbetini çek */
+/* 💬 Klan sohbetini çek (lastRunDate'ten sonrakiler, max 30 mesaj) */
 async function fetchChatMessages(since) {
   const res = await axios.get(
     `https://api.wolvesville.com/clans/${CLAN_ID}/chat`,
@@ -298,6 +298,45 @@ async function fetchChatMessages(since) {
   return res.data.filter(
     m => m && !m.isSystem && m.msg && m.date && new Date(m.date) > since
   );
+}
+
+/* 💬 Son 7 günün mesajlarını sayfalama yaparak çek (bağlam için) */
+async function fetchRecentMessages() {
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const allMessages = [];
+  let oldest = null;
+  let reachedLimit = false;
+
+  while (!reachedLimit) {
+    const url = oldest
+      ? `https://api.wolvesville.com/clans/${CLAN_ID}/chat?oldest=${encodeURIComponent(oldest)}`
+      : `https://api.wolvesville.com/clans/${CLAN_ID}/chat`;
+
+    const res = await axios.get(url, { headers: { Authorization: `Bot ${API_TOKEN}` } });
+
+    if (!Array.isArray(res.data) || res.data.length === 0) break;
+
+    const filtered = res.data.filter(m => m && !m.isSystem && m.msg && m.date);
+
+    for (const m of filtered) {
+      if (new Date(m.date) < sevenDaysAgo) {
+        reachedLimit = true;
+        break;
+      }
+      allMessages.push(m);
+    }
+
+    // Daha az mesaj geldiyse son sayfadayız
+    if (res.data.length < 30) break;
+
+    // En eski mesajın tarihini al, bir sonraki sayfa için
+    const dates = res.data.map(m => new Date(m.date)).filter(d => !isNaN(d));
+    if (dates.length === 0) break;
+    oldest = new Date(Math.min(...dates)).toISOString();
+  }
+
+  // Eskiden yeniye sırala
+  return allMessages.sort((a, b) => new Date(a.date) - new Date(b.date));
 }
 
 /* 👤 Player ID → Username önbelleği */
@@ -440,9 +479,16 @@ async function checkLedger() {
       const userMessage = `${cmd.username} diyor ki: ${rawMessage}`;
       console.log(`🔍 İşleniyor: "${rawMessage}" (${cmd.username})`);
 
-      const contextMessages = messagesWithUsername
-        .filter(m => new Date(m.date) < new Date(cmd.date))
-        .slice(-15);
+      // Son 200 mesajı çek, yeni oyuncuların username'lerini de çek
+      const recentRaw = await fetchRecentMessages();
+      const newPlayerIds = [...new Set(recentRaw.map(m => m.playerId).filter(Boolean))]
+        .filter(id => !usernameCache[id]);
+      await Promise.all(newPlayerIds.map(id => fetchUsername(id)));
+      const recentWithUsername = recentRaw.map(m => ({
+        ...m,
+        username: m.playerId === BOT_PLAYER_ID ? "zncibot" : (usernameCache[m.playerId] || m.playerId?.slice(0, 6) || "?")
+      }));
+      const contextMessages = recentWithUsername.filter(m => new Date(m.date) < new Date(cmd.date));
 
       try {
         const reply = await askGemini(userMessage, contextMessages, cmd.playerId);
