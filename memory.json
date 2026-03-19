@@ -1,27 +1,8 @@
 {
-  "player_data": {
-    "username": "Rakuncan",
-    "personality_traits": [
-      "Hayko ile olan dostluğumuzu kıskanıyor"
+  "hayko": {
+    "notes": [
+      "Hayko ile arası iyi, klanın sevilen bir üyesi. Sohbeti özleniyor."
     ],
-    "relationship_summary": "Bana çok iyi davranmadı",
-    "memories": [
-      "Hayko'nun banı ile dalga geçti",
-      "Klandan atılmamı istedi yarı sarkastik bir şekilde"
-    ],
-    "last_updated": "2026-03-19 12:15"
-  }
-}
-{
-  "player_data": {
-    "username": "hayko",
-    "personality_traits": [
-      "Kibar, pozitif"
-    ],
-    "relationship_summary": "Aramız iyi",
-    "memories": [
-      "Şu anda banı var. Bitmesini bekliyor"
-    ],
-    "last_updated": "2026-03-19 12:15"
+    "lastUpdated": "2026-03-19"
   }
 }
