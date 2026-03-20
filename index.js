@@ -216,14 +216,21 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${GEMINI_API_KEY}`;
 
+  const formatDate = (dateStr) => {
+    const d = new Date(new Date(dateStr).getTime() + 3 * 60 * 60 * 1000);
+    const pad = n => String(n).padStart(2, "0");
+    return `${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
+  };
+
   const chatContext = recentMessages.length > 0
     ? "Son klan sohbeti:\n" +
       recentMessages.map(m => {
-        if (m.username === "zncibot") return `[zncibot yanıtladı]: ${m.msg}`;
+        const ts = m.date ? ` [${formatDate(m.date)}]` : "";
+        if (m.username === "zncibot") return `[zncibot yanıtladı]${ts}: ${m.msg}`;
         if (m.msg.trim().toLowerCase().startsWith("!zncibot ")) {
-          return `[${m.username} sordu]: ${m.msg.trim().slice("!zncibot ".length).trim()}`;
+          return `[${m.username} sordu]${ts}: ${m.msg.trim().slice("!zncibot ".length).trim()}`;
         }
-        return `[${m.username}]: ${m.msg}`;
+        return `[${m.username}]${ts}: ${m.msg}`;
       }).join("\n") + "\n\n"
     : "";
 
@@ -326,7 +333,7 @@ async function fetchRecentMessages() {
       allMessages.push(m);
     }
 
-    // 500 mesaj sınırına ulaştıysa dur
+    // 300 mesaj sınırına ulaştıysa dur
     if (allMessages.length >= 300) break;
 
     // Daha az mesaj geldiyse son sayfadayız
