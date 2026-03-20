@@ -526,7 +526,7 @@ async function checkChat() {
 
 /* 🔁 Ana döngü */
 async function main() {
-  if (!API_TOKEN || !CLAN_ID) throw new Error("Eksik env: API_TOKEN veya CLAN_ID");
+  if (!API_TOKEN || !CLAN_ID || !GEMINI_API_KEY) throw new Error("Eksik env: API_TOKEN, CLAN_ID veya GEMINI_API_KEY");
 
   const RUN_DURATION_MS = (3 * 60 + 58) * 60 * 1000; // 3 saat 58 dakika
   const CHAT_INTERVAL_MS = 10 * 1000;                 // 10 saniye
