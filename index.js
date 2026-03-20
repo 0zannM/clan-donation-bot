@@ -235,7 +235,7 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
 
   const apiConfig = {
     tools: TOOLS,
-    generationConfig: { maxOutputTokens: 300, temperature: 0.7 }
+    generationConfig: { maxOutputTokens: 300, temperature: 0.5 }
   };
 
   let res = await axios.post(url, { contents, ...apiConfig }, {
