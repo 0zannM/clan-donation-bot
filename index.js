@@ -210,11 +210,17 @@ async function handleFunctionCall(name, args, senderPlayerId = null) {
   return { error: "Bilinmeyen fonksiyon." };
 }
 
+/* 🤖 Gemini modelleri */
+const GEMINI_PRIMARY = "gemini-3-flash-preview";
+const GEMINI_FALLBACK = "gemini-3.1-flash-lite-preview";
+
 /* 🤖 Gemini'ye sor (function calling destekli) */
 async function askGemini(userMessage, recentMessages = [], senderPlayerId = null) {
   if (!GEMINI_API_KEY) throw new Error("Eksik env: GEMINI_API_KEY");
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${GEMINI_API_KEY}`;
+  const getUrl = (model) => `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+  let url = getUrl(GEMINI_PRIMARY);
+  let usingFallback = false;
 
   const formatDate = (dateStr) => {
     const d = new Date(new Date(dateStr).getTime() + 3 * 60 * 60 * 1000);
@@ -245,9 +251,23 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
     generationConfig: { maxOutputTokens: 300, temperature: 0.5 }
   };
 
-  let res = await axios.post(url, { contents, ...apiConfig }, {
-    headers: { "Content-Type": "application/json" }
-  });
+  let res;
+  try {
+    res = await axios.post(url, { contents, ...apiConfig }, {
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (err) {
+    if (err.response?.status === 429 && !usingFallback) {
+      console.warn("⚠️ 429 alındı, fallback modele geçiliyor:", GEMINI_FALLBACK);
+      url = getUrl(GEMINI_FALLBACK);
+      usingFallback = true;
+      res = await axios.post(url, { contents, ...apiConfig }, {
+        headers: { "Content-Type": "application/json" }
+      });
+    } else {
+      throw err;
+    }
+  }
 
   const candidate = res.data?.candidates?.[0];
   const functionCallPart = candidate?.content?.parts?.find(p => p.functionCall);
@@ -283,9 +303,22 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
       });
     }
 
-    res = await axios.post(url, { contents, ...apiConfig }, {
-      headers: { "Content-Type": "application/json" }
-    });
+    try {
+      res = await axios.post(url, { contents, ...apiConfig }, {
+        headers: { "Content-Type": "application/json" }
+      });
+    } catch (err) {
+      if (err.response?.status === 429 && !usingFallback) {
+        console.warn("⚠️ 429 alındı, fallback modele geçiliyor:", GEMINI_FALLBACK);
+        url = getUrl(GEMINI_FALLBACK);
+        usingFallback = true;
+        res = await axios.post(url, { contents, ...apiConfig }, {
+          headers: { "Content-Type": "application/json" }
+        });
+      } else {
+        throw err;
+      }
+    }
   }
 
   const text = res.data?.candidates?.[0]?.content?.parts?.find(p => p.text)?.text;
