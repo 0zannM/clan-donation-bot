@@ -411,7 +411,7 @@ async function sendChatMessage(message) {
 }
 
 /* 🕐 Paylaşılan state */
-let lastRunDate = new Date("2026-02-18T02:00:00.000Z");
+let lastRunDate = new Date("2026-03-22T02:00:00.000Z");
 
 function loadState() {
   if (fs.existsSync(STATE_FILE)) {
