@@ -248,7 +248,7 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
 
   const apiConfig = {
     tools: TOOLS,
-    generationConfig: { maxOutputTokens: 2000, temperature: 0.7 }
+    generationConfig: { maxOutputTokens: 2000, temperature: 0.6 }
   };
 
   let res;
@@ -411,7 +411,7 @@ async function sendChatMessage(message) {
 }
 
 /* 🕐 Paylaşılan state */
-let lastRunDate = new Date("2026-03-22T02:00:00.000Z");
+let lastRunDate = new Date("2026-03-28T02:00:00.000Z");
 
 function loadState() {
   if (fs.existsSync(STATE_FILE)) {
