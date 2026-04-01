@@ -366,8 +366,8 @@ async function fetchRecentMessages() {
       allMessages.push(m);
     }
 
-    //  300 mesaj sınırına ulaştıysa dur
-    if (allMessages.length >= 300) break;
+    //  1000 mesaj sınırına ulaştıysa dur
+    if (allMessages.length >= 100) break;
 
     // Daha az mesaj geldiyse son sayfadayız
     if (res.data.length < 30) break;
