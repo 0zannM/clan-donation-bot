@@ -570,8 +570,8 @@ async function main() {
   console.log(`🚀 Bot başlatıldı (Tek seferlik kontrol) — ${new Date().toISOString()}`);
 
   try {
-    await checkLedger();
     await checkChat();
+    await checkLedger();
   } catch (err) {
     console.error("❌ HATA:", err.response?.status, err.response?.data || err.message);
   }
