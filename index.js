@@ -482,6 +482,7 @@ async function checkLedger() {
 
 /* ─── CHAT: Kontrol Fonksiyonu ───────────────────────────────────────────── */
 async function checkChat() {
+  console.log("💬 Sohbet (Chat) kontrol ediliyor...");
   const chatMessages = await fetchChatMessages(lastRunDate);
 
   const allPlayerIds = [...new Set(chatMessages.map(m => m.playerId).filter(Boolean))];
@@ -496,7 +497,10 @@ async function checkChat() {
     m.msg.trim().toLowerCase().startsWith("!zncibot ")
   );
 
-  if (botCommands.length === 0) return;
+  if (botCommands.length === 0) {
+    console.log("🔕 Yeni komut yok."); 
+    return;
+  }
 
   botCommands.sort((a, b) => new Date(a.date) - new Date(b.date));
   console.log(`🤖 ${botCommands.length} adet !zncibot komutu bulundu.`);
