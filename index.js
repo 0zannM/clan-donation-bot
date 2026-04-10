@@ -430,7 +430,7 @@ function saveState() {
   }
 }
 
-/* ─── LEDGER: her 60 saniyede bir ─────────────────────────────────────────── */
+/* ─── LEDGER: Kontrol Fonksiyonu ─────────────────────────────────────────── */
 async function checkLedger() {
   console.log("⏳ Ledger kontrol ediliyor...");
 
@@ -480,7 +480,7 @@ async function checkLedger() {
   saveState();
 }
 
-/* ─── CHAT: her 10 saniyede bir ───────────────────────────────────────────── */
+/* ─── CHAT: Kontrol Fonksiyonu ───────────────────────────────────────────── */
 async function checkChat() {
   const chatMessages = await fetchChatMessages(lastRunDate);
 
@@ -557,38 +557,22 @@ async function checkChat() {
   }
 }
 
-/* 🔁 Ana döngü */
+/* 🔁 Ana Fonksiyon (Tek Seferlik Çalışma) */
 async function main() {
   if (!API_TOKEN || !CLAN_ID || !GEMINI_API_KEY) throw new Error("Eksik env: API_TOKEN, CLAN_ID veya GEMINI_API_KEY");
 
-  const RUN_DURATION_MS = (3 * 60 + 58) * 60 * 1000; // 3 saat 58 dakika
-  const CHAT_INTERVAL_MS = 10 * 1000;                 // 10 saniye
-  const LEDGER_INTERVAL_MS = 60 * 1000;               // 60 saniye
-
   loadState();
 
-  const startTime = Date.now();
-  let lastLedgerCheck = 0;
+  console.log(`🚀 Bot başlatıldı (Tek seferlik kontrol) — ${new Date().toISOString()}`);
 
-  console.log(`🚀 Bot başlatıldı — ${new Date().toISOString()} | Süre: ${RUN_DURATION_MS / 60000} dk`);
-
-  while (Date.now() - startTime < RUN_DURATION_MS) {
-    const now = Date.now();
-
-    try {
-      if (now - lastLedgerCheck >= LEDGER_INTERVAL_MS) {
-        await checkLedger();
-        lastLedgerCheck = Date.now();
-      }
-      await checkChat();
-    } catch (err) {
-      console.error("❌ HATA:", err.response?.status, err.response?.data || err.message);
-    }
-
-    await new Promise(resolve => setTimeout(resolve, CHAT_INTERVAL_MS));
+  try {
+    await checkLedger();
+    await checkChat();
+  } catch (err) {
+    console.error("❌ HATA:", err.response?.status, err.response?.data || err.message);
   }
 
-  console.log("⏹️ Bot süresi doldu, kapatılıyor.");
+  console.log("⏹️ İşlemler tamamlandı, kapatılıyor.");
   saveState();
 }
 
