@@ -293,7 +293,7 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
         role: "user",
         parts: [
           { inlineData: { mimeType: "image/png", data: fnResult.base64 } },
-          { text: "Bu Wolvesville avatar görselini kısaca betimleyerek yorumla, beğendiysen öv. En fazla 2-3 cümle olsun, kısa cümleler kullan, uzun yazılar yazma. Eğer skinin ten rengi beyaz ise bu klana uygun bir skin olmadığını belirt ve yorumlama, 'bu skin ne alaka' veya 'beyaza yer yok' gibi eğlenceli bir yorum yap (kıyafetlerinin beyaz olmasında sakınca yok, ten rengi önemli olan). Eğer kullanıcının istediği skini bulamadıysan herhangi bir yorum yapma, başka bir skin inceleme, sadece bulamadığını kısaca belirt" }
+          { text: "Bu Wolvesville avatar görselini kısaca betimleyerek yorumla, beğendiysen öv. Yanıtını olabildiğince kısa tut, 1-3 cümle kullan. Eğer skinin ten rengi beyaz ise bu klana uygun bir skin olmadığını belirt ve yorumlama, 'bu skin ne alaka' veya 'beyaza yer yok' gibi eğlenceli bir yorum yap (kıyafetlerinin beyaz olmasında sakınca yok, ten rengi önemli olan). Eğer kullanıcının istediği skini bulamadıysan herhangi bir yorum yapma, başka bir skin inceleme, sadece bulamadığını kısaca belirt" }
         ]
       });
     } else {
