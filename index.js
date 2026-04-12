@@ -342,7 +342,7 @@ async function fetchChatMessages(since) {
 
 /* 💬 Son 7 günün mesajlarını sayfalama yaparak çek (bağlam için) */
 async function fetchRecentMessages() {
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const sevenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
   const allMessages = [];
   let oldest = null;
   let reachedLimit = false;
@@ -367,7 +367,7 @@ async function fetchRecentMessages() {
     }
 
     //  300 mesaj sınırına ulaştıysa dur
-    if (allMessages.length >= 300) break;
+    if (allMessages.length >= 3000) break;
 
     // Daha az mesaj geldiyse son sayfadayız
     if (res.data.length < 30) break;
