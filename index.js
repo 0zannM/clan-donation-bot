@@ -257,8 +257,8 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
       headers: { "Content-Type": "application/json" }
     });
   } catch (err) {
-    if ((err.response?.status === 429 || err.response?.status === 500) && !usingFallback) {
-      console.warn("⚠️ 429/500 alındı, fallback modele geçiliyor:", GEMINI_FALLBACK);
+    if ((err.response?.status === 429 || err.response?.status === 503) && !usingFallback) {
+      console.warn("⚠️ 429/503 alındı, fallback modele geçiliyor:", GEMINI_FALLBACK);
       url = getUrl(GEMINI_FALLBACK);
       usingFallback = true;
       res = await axios.post(url, { contents, ...apiConfig }, {
