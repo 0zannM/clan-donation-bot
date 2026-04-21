@@ -255,6 +255,8 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
     { role: "user", parts: [{ text: chatContext + userMessage }] }
   ];
 
+  console.log("🤖 GEMINI'YE GİDEN TAM İÇERİK:", JSON.stringify(contents, null, 2));
+  
   const apiConfig = {
     tools: TOOLS,
     generationConfig: { maxOutputTokens: 2000, temperature: 0.7 }
@@ -557,7 +559,6 @@ async function checkChat() {
     const contextMessages = recentWithUsername.filter(m => new Date(m.date) < new Date(cmd.date));
 
     try {
-       console.log(contextMessages.slice(-50)); 
       const reply = await askGemini(userMessage, contextMessages, cmd.playerId);
       console.log(`🤖 Gemini yanıtı (${reply.length} karakter):`, reply);
       await sendChatMessage(reply);
