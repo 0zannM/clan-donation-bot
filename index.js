@@ -254,9 +254,6 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
     { role: "model", parts: [{ text: "Anladım, zncibot olarak yanıt vereceğim." }] },
     { role: "user", parts: [{ text: chatContext + userMessage }] }
   ];
-
-  console.log("🤖 GEMINI'YE GİDEN MESAJ İÇERİĞİ:");
-  console.log(contents);
   
   const apiConfig = {
     tools: TOOLS,
