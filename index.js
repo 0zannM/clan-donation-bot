@@ -255,7 +255,8 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
     { role: "user", parts: [{ text: chatContext + userMessage }] }
   ];
 
-  console.log("🤖 GEMINI'YE GİDEN TAM İÇERİK:", JSON.stringify(contents, null, 2));
+  console.log("🤖 GEMINI'YE GİDEN MESAJ İÇERİĞİ:");
+  console.log(contents[2].parts[0].text);
   
   const apiConfig = {
     tools: TOOLS,
