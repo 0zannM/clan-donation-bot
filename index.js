@@ -411,7 +411,7 @@ async function sendChatMessage(message) {
 }
 
 /* 🕐 Paylaşılan state */
-let lastRunDate = new Date("2026-03-28T02:00:00.000Z");
+let lastRunDate = new Date("2026-04-20T02:00:00.000Z");
 
 function loadState() {
   if (fs.existsSync(STATE_FILE)) {
@@ -575,7 +575,7 @@ async function main() {
   } catch (err) {
     console.error("❌ HATA:", err.response?.status, err.response?.data || err.message);
   }
-
+  console.log(chatContext);
   console.log("⏹️ İşlemler tamamlandı, kapatılıyor.");
   saveState();
 }
