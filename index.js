@@ -548,6 +548,7 @@ async function checkChat() {
     const contextMessages = recentWithUsername.filter(m => new Date(m.date) < new Date(cmd.date));
 
     try {
+      console.log(chatContext);
       const reply = await askGemini(userMessage, contextMessages, cmd.playerId);
       console.log(`🤖 Gemini yanıtı (${reply.length} karakter):`, reply);
       await sendChatMessage(reply);
@@ -575,7 +576,6 @@ async function main() {
   } catch (err) {
     console.error("❌ HATA:", err.response?.status, err.response?.data || err.message);
   }
-  console.log(chatContext);
   console.log("⏹️ İşlemler tamamlandı, kapatılıyor.");
   saveState();
 }
