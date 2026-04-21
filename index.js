@@ -548,7 +548,7 @@ async function checkChat() {
     const contextMessages = recentWithUsername.filter(m => new Date(m.date) < new Date(cmd.date));
 
     try {
-      console.log(contextMessages.slice(-50));
+      /* console.log(contextMessages.slice(-50)); */
       const reply = await askGemini(userMessage, contextMessages, cmd.playerId);
       console.log(`🤖 Gemini yanıtı (${reply.length} karakter):`, reply);
       await sendChatMessage(reply);
