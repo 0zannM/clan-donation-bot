@@ -256,7 +256,7 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
   ];
 
   console.log("🤖 GEMINI'YE GİDEN MESAJ İÇERİĞİ:");
-  console.log(contents[2].parts[0].text);
+  console.log(contents);
   
   const apiConfig = {
     tools: TOOLS,
