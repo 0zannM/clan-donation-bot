@@ -243,7 +243,7 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
         
         if (username === "zncibot") return `[zncibot yanıtladı]${ts}: ${msg}`;
         if (msg.trim().toLowerCase().startsWith("!zncibot ")) {
-          return `[${username} sordu]${ts}: ${msg.trim().slice("!zncibot ".length).trim()}`;
+          return `[${username}]${ts}: ${msg.trim().slice("!zncibot ".length).trim()}`;
         }
         return `[${username}]${ts}: ${msg}`;
       }).join("\n") + "\n\n"
