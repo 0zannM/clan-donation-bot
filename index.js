@@ -211,8 +211,7 @@ async function handleFunctionCall(name, args, senderPlayerId = null) {
 }
 
 /* 🤖 Gemini modelleri */
-/* const GEMINI_PRIMARY = "gemini-3-flash-preview"; */
-const GEMINI_PRIMARY = "gemini-3.1-flash-lite-preview";
+const GEMINI_PRIMARY = "gemini-3-flash-preview";
 const GEMINI_FALLBACK = "gemini-3.1-flash-lite-preview";
 
 /* 🤖 Gemini'ye sor (function calling destekli) */
@@ -352,7 +351,7 @@ async function fetchChatMessages(since) {
 
 /* 💬 Son 7 günün mesajlarını sayfalama yaparak çek (bağlam için) */
 async function fetchRecentMessages() {
-  const sevenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+  const sevenDaysAgo = new Date(Date.now() - 25 * 24 * 60 * 60 * 1000);
   const allMessages = [];
   let oldest = null;
   let reachedLimit = false;
@@ -377,7 +376,7 @@ async function fetchRecentMessages() {
     }
 
     //  300 mesaj sınırına ulaştıysa dur
-    if (allMessages.length >= 300) break;
+    if (allMessages.length >= 7000) break;
 
     // Daha az mesaj geldiyse son sayfadayız
     if (res.data.length < 30) break;
