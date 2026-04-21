@@ -231,12 +231,21 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
   const chatContext = recentMessages.length > 0
     ? "Son klan sohbeti:\n" +
       recentMessages.map(m => {
-        const ts = m.date ? ` [${formatDate(m.date)}]` : "";
-        if (m.username === "zncibot") return `[zncibot yanıtladı]${ts}: ${m.msg}`;
-        if (m.msg.trim().toLowerCase().startsWith("!zncibot ")) {
-          return `[${m.username} sordu]${ts}: ${m.msg.trim().slice("!zncibot ".length).trim()}`;
+        // İSTEĞİNE GÖRE DÜZENLEME BURADA:
+        // m objesinden sadece ihtiyacımız olan 3 alanı (username, msg, date) alıyoruz.
+        // Diğer tüm bilgiler (isPinned, isSystem, playerId vs.) burada hariç tutuluyor.
+        const username = m.username;
+        const msg = m.msg;
+        const date = m.date;
+        const playerBotOwnerUsername = m.playerBotOwnerUsername;
+        
+        const ts = date ? ` [${formatDate(date)}]` : "";
+        
+        if (username === "zncibot") return `[zncibot yanıtladı]${ts}: ${msg}`;
+        if (msg.trim().toLowerCase().startsWith("!zncibot ")) {
+          return `[${username} sordu]${ts}: ${msg.trim().slice("!zncibot ".length).trim()}`;
         }
-        return `[${m.username}]${ts}: ${m.msg}`;
+        return `[${username}]${ts}: ${msg}`;
       }).join("\n") + "\n\n"
     : "";
 
