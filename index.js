@@ -231,12 +231,21 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
   const chatContext = recentMessages.length > 0
     ? "Son klan sohbeti:\n" +
       recentMessages.map(m => {
-        const ts = m.date ? ` [${formatDate(m.date)}]` : "";
-        if (m.username === "zncibot") return `[zncibot yanıtladı]${ts}: ${m.msg}`;
-        if (m.msg.trim().toLowerCase().startsWith("!zncibot ")) {
-          return `[${m.username} sordu]${ts}: ${m.msg.trim().slice("!zncibot ".length).trim()}`;
+        // İSTEĞİNE GÖRE DÜZENLEME BURADA:
+        // m objesinden sadece ihtiyacımız olan 3 alanı (username, msg, date) alıyoruz.
+        // Diğer tüm bilgiler (isPinned, isSystem, playerId vs.) burada hariç tutuluyor.
+        const username = m.username;
+        const msg = m.msg;
+        const date = m.date;
+        const playerBotOwnerUsername = m.playerBotOwnerUsername;
+        
+        const ts = date ? ` [${formatDate(date)}]` : "";
+        
+        if (username === "zncibot") return `[zncibot yanıtladı]${ts}: ${msg}`;
+        if (msg.trim().toLowerCase().startsWith("!zncibot ")) {
+          return `[${username}]${ts}: ${msg.trim().slice("!zncibot ".length).trim()}`;
         }
-        return `[${m.username}]${ts}: ${m.msg}`;
+        return `[${username}]${ts}: ${msg}`;
       }).join("\n") + "\n\n"
     : "";
 
@@ -245,8 +254,10 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
     { role: "model", parts: [{ text: "Anladım, zncibot olarak yanıt vereceğim." }] },
     { role: "user", parts: [{ text: chatContext + userMessage }] }
   ];
+
   console.log("🤖 GEMINI'YE GİDEN MESAJ İÇERİĞİ:");
   console.log(contents[2].parts[0].text);
+  
   const apiConfig = {
     tools: TOOLS,
     generationConfig: { maxOutputTokens: 2000, temperature: 0.7 }
@@ -576,7 +587,6 @@ async function main() {
   } catch (err) {
     console.error("❌ HATA:", err.response?.status, err.response?.data || err.message);
   }
-  console.log(chatContext);
   console.log("⏹️ İşlemler tamamlandı, kapatılıyor.");
   saveState();
 }
