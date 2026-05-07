@@ -28,8 +28,8 @@ const goldMessages = {
     "@{user}, {amount} altın sadaka verdi, tebrik ederiz.",
     "@{user} evsizlere umut olmak adına {amount} altın bağışladı.",
     "@{user}, çiftçimize mazot olsun diyip {amount} altın bağış yaptı.",
-    "Gerekirse bu ay kemer sıkmayı göze alan @{user}, hazineye {amount} altın bağışta bulundu",
-    "@{user}, zeñcilere refah dolu bir yaşam sunmaya katkı sağlamak için {amount} altını gözden çıkardı"
+    "Bu ay kemer sıkmayı göze alan @{user}, hazineye {amount} altın bağışta bulundu",
+    "@{user}, zeñciler refah içinde yaşasın diye {amount} altını gözden çıkardı"
   ],
   medium: [
     "@{user}, znciler daha iyi bir yaşamı hak ediyor diye düşünüp {amount} altın bağışladı.",
@@ -50,7 +50,8 @@ const goldMessages = {
     "@{user} ismiyle bilinen bir hayırsever, klan hazinesine {amount} altın bağışladı.",
     "Evde su kaçağı olduğunu fark eden @{user}, tesisatçıya {amount} ödeme yaptı.",
     "Zeñci halkının önde gelen isimlerinden @{user}, hazineye {amount} bağışta bulundu.",
-    ​"@{user}, üstü kalsın diyerek {amount} altın bıraktı."
+    "@{user}, üstü kalsın diyerek {amount} altın bıraktı.",
+    "Halkın sevgisini kazanmak isteyen @{user}, {amount} altın dağıttı."
   ],
   huge: [
     "@{user}, klan tarihine geçecek bir bağış yaptı: {amount} altın.",
