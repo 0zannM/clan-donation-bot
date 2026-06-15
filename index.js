@@ -215,7 +215,7 @@ async function handleFunctionCall(name, args, senderPlayerId = null) {
 
 /* 🤖 Gemini modelleri */
 const GEMINI_PRIMARY = "gemini-3.5-flash";
-const GEMINI_FALLBACK = "gemini-3.1-flash-lite";
+const GEMINI_FALLBACK = "gemini-3-flash-preview";
 
 /* 🤖 Gemini'ye sor (function calling destekli) */
 async function askGemini(userMessage, recentMessages = [], senderPlayerId = null) {
