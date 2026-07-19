@@ -261,7 +261,11 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
   
   const apiConfig = {
     tools: TOOLS,
-    generationConfig: { maxOutputTokens: 2000, temperature: 0.9 }
+    generationConfig: {
+      maxOutputTokens: 5000,
+      temperature: 0.9,
+      thinkingConfig: { thinkingLevel: "high" }
+    }
   };
 
   let res;
