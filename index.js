@@ -257,6 +257,7 @@ async function askGemini(userMessage, recentMessages = [], senderPlayerId = null
     { role: "model", parts: [{ text: "Anladım, zncibot olarak yanıt vereceğim." }] },
     { role: "user", parts: [{ text: chatContext + userMessage }] }
   ];
+  console.log("📤 Modele giden mesaj:\n" + chatContext + userMessage + "\n─────────────");
   
   const apiConfig = {
     tools: TOOLS,
